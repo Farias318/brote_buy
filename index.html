@@ -129,8 +129,71 @@
   .fx-inline input{width:90px;padding:5px 8px;font-size:.8rem}
   .demo-note{background:rgba(227,179,65,.08);border:1px solid rgba(227,179,65,.35);border-radius:12px;padding:10px 14px;font-size:.8rem;color:var(--gold);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 </style>
+<style id="theme-v4">
+  /* ============ TEMA OSCURO RENOVADO ============ */
+  :root{
+    --bg:#0a100e; --bg2:#0f1a15; --card:#131c18; --card2:#1b2721;
+    --border:#26382e; --text:#eef4f0; --muted:#8fa79a;
+    --green:#34d399; --green2:#10b981; --lime:#a3e635;
+    --gold:#e8b64a; --grad:linear-gradient(135deg,#10b981,#a3e635);
+  }
+  body{background:radial-gradient(1100px 480px at 75% -10%,rgba(16,185,129,.13),transparent 70%),var(--bg)}
+  body::before{display:none}
+  .card{border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+  .btn{box-shadow:0 6px 16px rgba(16,185,129,.25)}
+  .btn.sec,.btn.danger{box-shadow:none}
+  .pill{background:rgba(255,255,255,.03)}
+
+  /* Billeteras estilo tarjeta de crédito */
+  .wallet{min-height:150px;border-radius:18px;border:none;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 14px 30px rgba(0,0,0,.4)}
+  .wallet::before{content:'';position:absolute;right:-45px;top:-45px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.07)}
+  .wallet::after{content:'';position:absolute;right:-5px;top:55px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.05)}
+  .wallet.diario{background:linear-gradient(135deg,#1e3a5f,#111f36)}
+  .wallet.ahorro{background:linear-gradient(135deg,#0f5132,#082e1d)}
+  .wallet.inversion{background:linear-gradient(135deg,#6d5312,#3c2f08)}
+  .wallet .kind{letter-spacing:2.5px;font-size:.62rem;opacity:.85}
+  .wallet .bal{font-size:1.45rem;letter-spacing:.5px}
+  .wallet .pill{background:rgba(0,0,0,.25);border-color:rgba(255,255,255,.2);color:#fff}
+
+  /* Gráfico mensual */
+  .chartbars{display:flex;align-items:flex-end;gap:14px;height:158px;padding:6px 2px 0;overflow-x:auto}
+  .cb{display:flex;flex-direction:column;align-items:center;gap:7px;flex:1;min-width:52px}
+  .cb .bars{display:flex;gap:5px;align-items:flex-end;height:120px}
+  .cb .b{width:14px;border-radius:7px 7px 2px 2px;transition:height .7s cubic-bezier(.2,.9,.3,1.15)}
+  .cb .b.inc{background:linear-gradient(180deg,#34d399,#0e6b4b)}
+  .cb .b.exp{background:linear-gradient(180deg,#e8b64a,#8f6a17)}
+  .cb .m{font-size:.68rem;color:var(--muted)}
+  .chart-legend{display:flex;gap:18px;margin-top:10px;font-size:.75rem;color:var(--muted)}
+  .chart-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+  /* Sidebar (solo compu) */
+  #sidebar{display:none}
+  @media(min-width:900px){
+    #sidebar{display:flex;flex-direction:column;gap:4px;position:fixed;top:0;bottom:0;left:0;width:225px;background:linear-gradient(180deg,#0f2019,#0a1410);border-right:1px solid var(--border);padding:24px 14px;z-index:60}
+    .side-logo{font-size:1.45rem;font-weight:800;padding:0 10px;margin-bottom:20px;letter-spacing:-.5px}
+    .side-link{display:flex;align-items:center;gap:11px;width:100%;padding:12px 14px;border-radius:12px;color:var(--muted);background:none;border:none;font-family:inherit;font-size:.95rem;cursor:pointer;text-align:left;transition:.15s}
+    .side-link:hover{color:var(--text);background:rgba(255,255,255,.04)}
+    .side-link.active{background:rgba(52,211,153,.13);color:var(--lime);font-weight:700}
+    .side-bottom{margin-top:auto;border-top:1px solid var(--border);padding-top:10px}
+    .wrap{margin-left:225px;max-width:1040px;padding:24px 28px}
+    nav{display:none}
+    body{padding-bottom:24px}
+    .logo{display:none}
+    header{justify-content:flex-end}
+  }
+</style>
 </head>
 <body>
+<aside id="sidebar">
+  <div class="side-logo">🌱 <span style="background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Brote</span></div>
+  <button class="side-link active" data-tab="resumen" onclick="showTab('resumen')">🏠 Resumen</button>
+  <button class="side-link" data-tab="billeteras" onclick="showTab('billeteras')">👛 Billeteras</button>
+  <button class="side-link" data-tab="gastos" onclick="showTab('gastos')">🧾 Gastos</button>
+  <button class="side-link" data-tab="metas" onclick="showTab('metas')">🌳 Jardín</button>
+  <div class="side-bottom">
+    <button class="side-link" onclick="openSettings()">⚙️ Ajustes</button>
+  </div>
+</aside>
 <div class="wrap">
   <header>
     <div class="logo">🌱 <span>Brote</span></div>
@@ -178,6 +241,12 @@
           <div class="row"><span class="muted">🎯 En metas</span><b class="blue" id="totMetas">$0</b></div>
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="left">📊 Estadística mensual</span></h2>
+      <div id="chartBars" class="chartbars"></div>
+      <div class="chart-legend"><span><i style="background:linear-gradient(180deg,#34d399,#0e6b4b)"></i>Ingresos</span><span><i style="background:linear-gradient(180deg,#e8b64a,#8f6a17)"></i>Gastos + deudas pagadas</span></div>
     </div>
 
     <div class="card">
@@ -486,11 +555,26 @@ function renderHistory(){
   :'<div class="empty">Acá se guardará el resumen de cada mes. Cuando cambie el mes, se archiva solo: ingreso, gastos y patrimonio, y tus deudas fijas se reinician como pendientes.</div>';
 }
 
+/* ===================== GRÁFICO MENSUAL ===================== */
+function renderChart(){
+  const el=document.getElementById('chartBars');if(!el)return;
+  const curSpent=S.expenses.filter(e=>e.date.slice(0,7)===thisMonth()).reduce((s,e)=>{const w=walletById(e.walletId);return s+toARS(e.amount,w?w.currency:'ARS');},0)
+    +S.debts.filter(d=>d.paid).reduce((s,d)=>s+d.amount,0);
+  const rows=[...S.history.map(h=>({month:h.month,income:h.income,spent:h.spent+h.debtsPaid})),
+    {month:thisMonth(),income:S.income.month===thisMonth()?S.income.amount:0,spent:curSpent}]
+    .sort((a,b)=>a.month.localeCompare(b.month)).slice(-8);
+  const max=Math.max(1,...rows.map(r=>Math.max(r.income,r.spent)));
+  el.innerHTML=rows.map(r=>`<div class="cb"><div class="bars">
+    <div class="b inc" style="height:${Math.max(5,r.income/max*120)}px" title="Ingreso: ${fmt(r.income)}"></div>
+    <div class="b exp" style="height:${Math.max(5,r.spent/max*120)}px" title="Gastos: ${fmt(r.spent)}"></div>
+    </div><div class="m">${r.month.slice(5,7)}/${r.month.slice(2,4)}</div></div>`).join('');
+}
+
 /* ===================== TABS / MODAL ===================== */
 function showTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
 }
 function openModal(html){document.getElementById('modalContent').innerHTML=html;document.getElementById('modalBg').classList.add('open');}
 function closeModal(){document.getElementById('modalBg').classList.remove('open');}
@@ -731,7 +815,7 @@ function checkAchievement(id,cond){
 }
 
 /* ===================== RENDER ===================== */
-function renderAll(){renderHeader();renderResumen();renderWallets();renderExpenses();renderGarden();renderBadges();renderHistory();
+function renderAll(){renderHeader();renderResumen();renderWallets();renderExpenses();renderGarden();renderBadges();renderHistory();renderChart();
   document.getElementById('demoNote').style.display=S.demo?'flex':'none';
   document.getElementById('fxInput').value=S.fx;
 }
