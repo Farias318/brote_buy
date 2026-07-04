@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Brote 🌱 — Tu jardín financiero</title>
+<style>
+  :root{
+    --bg:#0d1117; --bg2:#161b27; --card:#1c2333; --card2:#232b3e;
+    --border:#2c3550; --text:#e6edf3; --muted:#8b96ad;
+    --green:#3fb950; --green2:#2ea043; --lime:#a3e635;
+    --gold:#e3b341; --red:#f85149; --blue:#58a6ff; --purple:#bc8cff;
+    --grad:linear-gradient(135deg,#3fb950,#a3e635);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh;padding-bottom:90px}
+  body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:900px;height:500px;background:radial-gradient(ellipse,rgba(63,185,80,.14),transparent 70%);pointer-events:none;z-index:0}
+  .wrap{max-width:860px;margin:0 auto;padding:20px 16px;position:relative;z-index:1}
+
+  /* HEADER */
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .logo{font-size:1.5rem;font-weight:800;letter-spacing:-.5px}
+  .logo span{background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .player{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:8px 14px}
+  .streak{font-weight:700;color:var(--gold);font-size:.95rem}
+  .lvl-box{min-width:150px}
+  .lvl-name{font-size:.75rem;color:var(--muted);display:flex;justify-content:space-between;gap:8px}
+  .lvl-name b{color:var(--lime)}
+  .xpbar{height:7px;background:#0b0f17;border-radius:99px;margin-top:4px;overflow:hidden}
+  .xpbar>div{height:100%;background:var(--grad);border-radius:99px;transition:width .6s ease}
+
+  /* NAV */
+  nav{position:fixed;bottom:0;left:0;right:0;background:rgba(13,17,23,.92);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;justify-content:center;gap:4px;padding:8px 6px calc(8px + env(safe-area-inset-bottom));z-index:50}
+  nav button{background:none;border:none;color:var(--muted);font-size:.72rem;padding:7px 12px;border-radius:12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:.2s;font-family:inherit}
+  nav button .ic{font-size:1.25rem}
+  nav button.active{color:var(--lime);background:rgba(163,230,53,.09)}
+
+  /* CARDS / GENERAL */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:14px}
+  .card h2{font-size:1.02rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .card h2 .left{display:flex;align-items:center;gap:8px}
+  h3.sub{font-size:.85rem;color:var(--muted);margin:14px 0 8px;font-weight:600}
+  .muted{color:var(--muted);font-size:.83rem}
+  .big{font-size:1.7rem;font-weight:800;letter-spacing:-.5px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:560px){.grid2{grid-template-columns:1fr}}
+  .pos{color:var(--green)} .neg{color:var(--red)} .gold{color:var(--gold)} .blue{color:var(--blue)}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .pill{font-size:.7rem;padding:2px 9px;border-radius:99px;border:1px solid var(--border);color:var(--muted);white-space:nowrap}
+  .pill.ars{color:var(--blue);border-color:rgba(88,166,255,.4)}
+  .pill.usd{color:var(--green);border-color:rgba(63,185,80,.4)}
+
+  /* BUTTONS */
+  .btn{background:var(--grad);color:#08110a;border:none;border-radius:12px;padding:10px 16px;font-weight:700;cursor:pointer;font-size:.9rem;font-family:inherit;transition:.15s}
+  .btn:hover{filter:brightness(1.1)}
+  .btn.sec{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+  .btn.sm{padding:6px 12px;font-size:.8rem;border-radius:10px}
+  .btn.danger{background:rgba(248,81,73,.15);color:var(--red);border:1px solid rgba(248,81,73,.4)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  /* PROGRESS BARS */
+  .pbar{height:12px;background:#0b0f17;border-radius:99px;overflow:hidden}
+  .pbar>div{height:100%;background:var(--grad);border-radius:99px;transition:width .8s cubic-bezier(.2,.9,.3,1.2)}
+  .pbar.goldbar>div{background:linear-gradient(90deg,#e3b341,#f6d365)}
+
+  /* LIST ITEMS */
+  .item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;background:var(--card2);border:1px solid var(--border);border-radius:12px;margin-bottom:8px}
+  .item .info{flex:1;min-width:0}
+  .item .t{font-weight:600;font-size:.92rem}
+  .item .s{font-size:.76rem;color:var(--muted)}
+  .item.paid{opacity:.55}
+  .item.paid .t{text-decoration:line-through}
+
+  /* WALLETS */
+  .wallet{border-radius:16px;padding:16px;border:1px solid var(--border);position:relative;overflow:hidden;background:var(--card2)}
+  .wallet .kind{font-size:.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+  .wallet .bal{font-size:1.35rem;font-weight:800;margin-top:6px}
+  .wallet.diario{background:linear-gradient(145deg,#1d2740,#161d30)}
+  .wallet.ahorro{background:linear-gradient(145deg,#14301f,#12231a)}
+  .wallet.inversion{background:linear-gradient(145deg,#2c2410,#211b0e)}
+  .wallets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+
+  /* GARDEN */
+  .garden{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+  .plot{background:linear-gradient(180deg,var(--card2) 60%,#1a2818);border:1px solid var(--border);border-radius:16px;padding:16px;text-align:center;transition:.2s}
+  .plot:hover{transform:translateY(-3px);border-color:rgba(163,230,53,.5)}
+  .plant{font-size:3.2rem;line-height:1;margin:6px 0 10px;filter:drop-shadow(0 4px 10px rgba(63,185,80,.35));transition:.3s}
+  .plot.done{border-color:var(--gold);box-shadow:0 0 18px rgba(227,179,65,.15)}
+  .plot .gname{font-weight:700;font-size:.95rem}
+  .plot .gnum{font-size:.78rem;color:var(--muted);margin:6px 0}
+  .stage-label{font-size:.72rem;color:var(--lime);margin-bottom:8px}
+
+  /* CATEGORY BARS */
+  .cat{margin-bottom:10px}
+  .cat .row{margin-bottom:4px;font-size:.85rem}
+  .cat .pbar{height:9px}
+
+  /* BADGES */
+  .badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .badge{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;font-size:.78rem}
+  .badge .bi{font-size:1.7rem}
+  .badge.locked{opacity:.35;filter:grayscale(1)}
+  .badge b{display:block;margin-top:4px}
+
+  /* FORMS / MODAL */
+  .modal-bg{position:fixed;inset:0;background:rgba(5,8,12,.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px;width:100%;max-width:420px;max-height:88vh;overflow-y:auto}
+  .modal h3{margin-bottom:14px}
+  label{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 4px}
+  input,select{width:100%;background:#0b0f17;border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:.95rem;font-family:inherit}
+  input:focus,select:focus{outline:none;border-color:var(--green)}
+  .modal .actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+
+  /* TOAST */
+  #toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--card);border:1px solid var(--green);color:var(--text);padding:12px 20px;border-radius:14px;font-weight:600;z-index:200;transition:.35s;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:90vw;text-align:center}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+
+  .tab{display:none}.tab.active{display:block;animation:fadein .25s ease}
+  @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .empty{text-align:center;color:var(--muted);padding:18px;font-size:.85rem}
+  .topbtns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .fx-inline{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted)}
+  .fx-inline input{width:90px;padding:5px 8px;font-size:.8rem}
+  .demo-note{background:rgba(227,179,65,.08);border:1px solid rgba(227,179,65,.35);border-radius:12px;padding:10px 14px;font-size:.8rem;color:var(--gold);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🌱 <span>Brote</span></div>
+    <div class="player">
+      <div class="streak" id="streak">🔥 0</div>
+      <div class="lvl-box">
+        <div class="lvl-name"><span id="lvlName">Semilla</span><b id="lvlNum">Nv. 1</b></div>
+        <div class="xpbar"><div id="xpFill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="demo-note" id="demoNote">
+    ⚠️ Estás viendo <b>datos de ejemplo</b>. Cuando quieras, empezá con tus números reales.
+    <button class="btn sm danger" onclick="resetAll()">Empezar de cero</button>
+  </div>
+
+  <!-- ============ TAB: RESUMEN ============ -->
+  <div class="tab active" id="tab-resumen">
+    <div class="grid2">
+      <div class="card">
+        <h2><span class="left">💵 Este mes</span></h2>
+        <div class="muted">Ingreso cobrado</div>
+        <div class="big pos" id="incomeVal">$0</div>
+        <div style="margin-top:10px" class="row">
+          <span class="muted">Deudas pendientes</span><b class="neg" id="debtPending">$0</b>
+        </div>
+        <div class="row"><span class="muted">Gastado en el mes</span><b id="spentMonth">$0</b></div>
+        <div class="row" style="margin-top:6px;padding-top:8px;border-top:1px solid var(--border)">
+          <span>Disponible estimado</span><b class="gold" id="freeVal">$0</b>
+        </div>
+      </div>
+      <div class="card">
+        <h2><span class="left">👛 Patrimonio total</span>
+          <span class="fx-inline">USD→ARS <input type="number" id="fxInput" onchange="setFx(this.value)"></span>
+        </h2>
+        <div class="big" id="netWorth">$0</div>
+        <div class="muted" id="netWorthUsd"></div>
+        <div style="margin-top:10px">
+          <div class="row"><span class="muted">💳 Uso diario</span><b id="totDiario">$0</b></div>
+          <div class="row"><span class="muted">🐖 Ahorro</span><b class="pos" id="totAhorro">$0</b></div>
+          <div class="row"><span class="muted">📈 Inversión</span><b class="gold" id="totInversion">$0</b></div>
+          <div class="row"><span class="muted">🎯 En metas</span><b class="blue" id="totMetas">$0</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="left">🧾 Deudas del mes</span><button class="btn sm sec" onclick="openDebtForm()">+ Agregar</button></h2>
+      <div id="debtList"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="left">🏝️ Camino a la libertad financiera</span></h2>
+      <div class="muted" style="margin-bottom:8px">Regla del 4%: cuando tus inversiones alcanzan <b>300× tu gasto mensual</b>, podrías vivir de ellas retirando el 4% anual.</div>
+      <div class="pbar goldbar" style="height:16px"><div id="fireBar" style="width:0%"></div></div>
+      <div class="row" style="margin-top:8px">
+        <span class="muted" id="fireLabel">0%</span>
+        <span class="muted">Meta: <b class="gold" id="fireTarget">$0</b></span>
+      </div>
+      <div class="muted" style="margin-top:8px" id="firePassive"></div>
+    </div>
+  </div>
+
+  <!-- ============ TAB: BILLETERAS ============ -->
+  <div class="tab" id="tab-billeteras">
+    <div class="topbtns">
+      <button class="btn" onclick="openWalletForm()">+ Nueva billetera</button>
+      <button class="btn sec" onclick="openTransferForm()">⇄ Transferir</button>
+    </div>
+    <div class="wallets-grid" id="walletGrid"></div>
+  </div>
+
+  <!-- ============ TAB: GASTOS ============ -->
+  <div class="tab" id="tab-gastos">
+    <div class="topbtns"><button class="btn" onclick="openExpenseForm()">+ Registrar gasto</button></div>
+    <div class="card"><h2><span class="left">📊 ¿En qué se va la plata? (mes actual)</span></h2><div id="catBars"></div></div>
+    <div class="card"><h2><span class="left">🧾 Últimos movimientos</span></h2><div id="expenseList"></div></div>
+  </div>
+
+  <!-- ============ TAB: METAS ============ -->
+  <div class="tab" id="tab-metas">
+    <div class="topbtns"><button class="btn" onclick="openGoalForm()">🌰 Plantar nueva meta</button></div>
+    <div class="muted" style="margin-bottom:12px">Cada meta es una planta. Cada aporte la hace crecer 🌱→🌿→🌳. ¡Cosechá tus objetivos!</div>
+    <div class="garden" id="gardenGrid"></div>
+    <div class="card" style="margin-top:16px"><h2><span class="left">🏅 Logros</span></h2><div class="badges" id="badgeGrid"></div></div>
+  </div>
+</div>
+
+<nav>
+  <button class="active" data-tab="resumen" onclick="showTab('resumen')"><span class="ic">🏠</span>Resumen</button>
+  <button data-tab="billeteras" onclick="showTab('billeteras')"><span class="ic">👛</span>Billeteras</button>
+  <button data-tab="gastos" onclick="showTab('gastos')"><span class="ic">🧾</span>Gastos</button>
+  <button data-tab="metas" onclick="showTab('metas')"><span class="ic">🌳</span>Jardín</button>
+</nav>
+
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ===================== ESTADO ===================== */
+const KEY='brote_v1';
+const CATS=['🍔 Comida','🚌 Transporte','🏠 Hogar','🎮 Ocio','👕 Ropa','💊 Salud','📚 Educación','🐜 Gasto hormiga','📦 Otros'];
+const uid=()=>Math.random().toString(36).slice(2,10);
+const today=()=>new Date().toISOString().slice(0,10);
+const thisMonth=()=>today().slice(0,7);
+
+function sampleData(){
+  return {
+    demo:true, fx:1500, xp:0, achievements:[], activityDays:[today()],
+    income:{month:thisMonth(),amount:1500000},
+    monthlyExpenseEstimate:900000,
+    wallets:[
+      {id:'w1',name:'Mercado Pago',currency:'ARS',kind:'diario',balance:1500000,icon:'💳'},
+      {id:'w2',name:'Ualá Ahorro',currency:'ARS',kind:'ahorro',balance:120000,icon:'🐖'},
+      {id:'w3',name:'Cuenta USD',currency:'USD',kind:'inversion',balance:350,icon:'📈'},
+      {id:'w4',name:'Efectivo',currency:'ARS',kind:'diario',balance:40000,icon:'💵'}
+    ],
+    debts:[
+      {id:'d1',name:'Alquiler',amount:450000,paid:false},
+      {id:'d2',name:'Tarjeta de crédito',amount:320000,paid:false},
+      {id:'d3',name:'Internet + celular',amount:45000,paid:false}
+    ],
+    expenses:[
+      {id:'e1',date:today(),amount:12500,walletId:'w1',category:'🍔 Comida',note:'Supermercado'},
+      {id:'e2',date:today(),amount:3800,walletId:'w4',category:'🐜 Gasto hormiga',note:'Café'}
+    ],
+    goals:[
+      {id:'g1',name:'Fondo de emergencia',target:1000,currency:'USD',saved:350,icon:'🛡️'},
+      {id:'g2',name:'Viaje',target:800000,currency:'ARS',saved:120000,icon:'✈️'}
+    ]
+  };
+}
+let S=load();
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.wallets)return d;}catch(e){}return sampleData();}
+function save(){localStorage.setItem(KEY,JSON.stringify(S));}
+function resetAll(){
+  if(!confirm('¿Borrar todo y empezar de cero con tus datos reales?'))return;
+  S={demo:false,fx:S.fx,xp:0,achievements:[],activityDays:[],income:{month:thisMonth(),amount:0},monthlyExpenseEstimate:0,wallets:[],debts:[],expenses:[],goals:[]};
+  save();renderAll();openIncomeForm();
+}
+
+/* ===================== HELPERS ===================== */
+function fmt(n,cur='ARS'){
+  return new Intl.NumberFormat('es-AR',{style:'currency',currency:cur==='USD'?'USD':'ARS',maximumFractionDigits:cur==='USD'?2:0}).format(n);
+}
+const toARS=(n,cur)=>cur==='USD'?n*S.fx:n;
+function walletById(id){return S.wallets.find(w=>w.id===id);}
+function setFx(v){const n=+v;if(n>0){S.fx=n;save();renderAll();}}
+function toast(msg){const t=document.getElementById('toast');t.innerHTML=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* ===================== TABS / MODAL ===================== */
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+}
+function openModal(html){document.getElementById('modalContent').innerHTML=html;document.getElementById('modalBg').classList.add('open');}
+function closeModal(){document.getElementById('modalBg').classList.remove('open');}
+function walletOptions(sel){return S.wallets.map(w=>`<option value="${w.id}" ${w.id===sel?'selected':''}>${w.icon} ${w.name} — ${fmt(w.balance,w.currency)}</option>`).join('');}
+
+/* ===================== FORMULARIOS ===================== */
+function openIncomeForm(){
+  openModal(`<h3>💵 Ingreso del mes</h3>
+    <label>Monto cobrado (ARS)</label><input type="number" id="f_amount" value="${S.income.amount||''}" placeholder="1500000">
+    <label>¿A qué billetera entra?</label><select id="f_wallet">${walletOptions()}<option value="">(ninguna / ya está cargado)</option></select>
+    <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveIncome()">Guardar</button></div>`);
+}
+function saveIncome(){
+  const a=+document.getElementById('f_amount').value||0;
+  const wid=document.getElementById('f_wallet').value;
+  const diff=a-(S.income.month===thisMonth()?S.income.amount:0);
+  S.income={month:thisMonth(),amount:a};
+  if(wid&&diff!==0){const w=walletById(wid);w.balance+=diff;}
+  registerActivity();addXp(10,'Ingreso actualizado');save();renderAll();closeModal();
+}
+function openWalletForm(id){
+  const w=id?walletById(id):null;
+  openModal(`<h3>${w?'✏️ Editar':'👛 Nueva'} billetera</h3>
+    <label>Nombre</label><input id="f_name" value="${w?w.name:''}" placeholder="Mercado Pago, Banco, Efectivo...">
+    <label>Ícono (emoji)</label><input id="f_icon" value="${w?w.icon:'💳'}">
+    <label>Moneda</label><select id="f_cur"><option ${w&&w.currency==='ARS'?'selected':''}>ARS</option><option ${w&&w.currency==='USD'?'selected':''}>USD</option></select>
+    <label>Tipo</label><select id="f_kind">
+      <option value="diario" ${w&&w.kind==='diario'?'selected':''}>💳 Uso diario</option>
+      <option value="ahorro" ${w&&w.kind==='ahorro'?'selected':''}>🐖 Ahorro</option>
+      <option value="inversion" ${w&&w.kind==='inversion'?'selected':''}>📈 Inversión</option>
+    </select>
+    <label>Saldo actual</label><input type="number" id="f_bal" value="${w?w.balance:''}" placeholder="0">
+    <div class="actions">
+      ${w?`<button class="btn danger sm" onclick="deleteWallet('${w.id}')">Eliminar</button>`:''}
+      <button class="btn sec" onclick="closeModal()">Cancelar</button>
+      <button class="btn" onclick="saveWallet('${id||''}')">Guardar</button></div>`);
+}
+function saveWallet(id){
+  const name=document.getElementById('f_name').value.trim();if(!name)return toast('⚠️ Poné un nombre');
+  const data={name,icon:document.getElementById('f_icon').value||'💳',currency:document.getElementById('f_cur').value,kind:document.getElementById('f_kind').value,balance:+document.getElementById('f_bal').value||0};
+  if(id){Object.assign(walletById(id),data);}else{S.wallets.push({id:uid(),...data});addXp(15,'Billetera creada');}
+  registerActivity();save();renderAll();closeModal();
+}
+function deleteWallet(id){if(!confirm('¿Eliminar esta billetera?'))return;S.wallets=S.wallets.filter(w=>w.id!==id);save();renderAll();closeModal();}
+function openTransferForm(){
+  if(S.wallets.length<2)return toast('⚠️ Necesitás al menos 2 billeteras');
+  openModal(`<h3>⇄ Transferir entre billeteras</h3>
+    <label>Desde</label><select id="f_from">${walletOptions()}</select>
+    <label>Hacia</label><select id="f_to">${walletOptions(S.wallets[1].id)}</select>
+    <label>Monto (en la moneda de origen)</label><input type="number" id="f_amount" placeholder="0">
+    <p class="muted" style="margin-top:8px">Si las monedas difieren se convierte con el tipo de cambio ($${S.fx}).</p>
+    <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="doTransfer()">Transferir</button></div>`);
+}
+function doTransfer(){
+  const from=walletById(document.getElementById('f_from').value), to=walletById(document.getElementById('f_to').value);
+  const a=+document.getElementById('f_amount').value;
+  if(!a||a<=0)return toast('⚠️ Monto inválido');
+  if(from.id===to.id)return toast('⚠️ Elegí billeteras distintas');
+  if(a>from.balance)return toast('⚠️ Saldo insuficiente en '+from.name);
+  let recv=a;
+  if(from.currency!==to.currency)recv=from.currency==='USD'?a*S.fx:a/S.fx;
+  from.balance-=a;to.balance+=recv;
+  if(to.kind!=='diario')addXp(10,'+10 XP por mover plata a '+(to.kind==='ahorro'?'ahorro':'inversión')+' 💪');
+  checkAchievement('usd_saver', to.currency==='USD');
+  registerActivity();save();renderAll();closeModal();
+  toast(`⇄ ${fmt(a,from.currency)} → ${to.icon} ${to.name}`);
+}
+function openExpenseForm(){
+  if(!S.wallets.length)return toast('⚠️ Primero creá una billetera');
+  openModal(`<h3>🧾 Registrar gasto</h3>
+    <label>Monto</label><input type="number" id="f_amount" placeholder="0" autofocus>
+    <label>Billetera</label><select id="f_wallet">${walletOptions()}</select>
+    <label>Categoría</label><select id="f_cat">${CATS.map(c=>`<option>${c}</option>`).join('')}</select>
+    <label>Nota (opcional)</label><input id="f_note" placeholder="¿Qué compraste?">
+    <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveExpense()">Registrar</button></div>`);
+}
+function saveExpense(){
+  const a=+document.getElementById('f_amount').value;if(!a||a<=0)return toast('⚠️ Monto inválido');
+  const w=walletById(document.getElementById('f_wallet').value);
+  if(a>w.balance)return toast('⚠️ Saldo insuficiente');
+  w.balance-=a;
+  S.expenses.unshift({id:uid(),date:today(),amount:a,walletId:w.id,category:document.getElementById('f_cat').value,note:document.getElementById('f_note').value});
+  checkAchievement('first_expense',true);
+  registerActivity();addXp(5,'+5 XP por registrar tu gasto ✍️');save();renderAll();closeModal();
+}
+function deleteExpense(id){
+  const e=S.expenses.find(x=>x.id===id);const w=walletById(e.walletId);
+  if(w)w.balance+=e.amount;
+  S.expenses=S.expenses.filter(x=>x.id!==id);save();renderAll();
+}
+function openDebtForm(){
+  openModal(`<h3>🧾 Nueva deuda / pago fijo</h3>
+    <label>Nombre</label><input id="f_name" placeholder="Alquiler, tarjeta...">
+    <label>Monto (ARS)</label><input type="number" id="f_amount" placeholder="0">
+    <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveDebt()">Agregar</button></div>`);
+}
+function saveDebt(){
+  const name=document.getElementById('f_name').value.trim(),a=+document.getElementById('f_amount').value;
+  if(!name||!a)return toast('⚠️ Completá nombre y monto');
+  S.debts.push({id:uid(),name,amount:a,paid:false});registerActivity();save();renderAll();closeModal();
+}
+function payDebt(id){
+  const d=S.debts.find(x=>x.id===id);
+  openModal(`<h3>💸 Pagar: ${d.name}</h3>
+    <p class="muted">Monto: <b>${fmt(d.amount)}</b></p>
+    <label>¿Desde qué billetera?</label><select id="f_wallet">${walletOptions()}</select>
+    <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="confirmPayDebt('${id}')">Pagar</button></div>`);
+}
+function confirmPayDebt(id){
+  const d=S.debts.find(x=>x.id===id);const w=walletById(document.getElementById('f_wallet').value);
+  const cost=w.currency==='USD'?d.amount/S.fx:d.amount;
+  if(cost>w.balance)return toast('⚠️ Saldo insuficiente en '+w.name);
+  w.balance-=cost;d.paid=true;
+  checkAchievement('first_debt',true);
+  if(S.debts.every(x=>x.paid))checkAchievement('all_debts',true);
+  registerActivity();addXp(15,'+15 XP · Deuda pagada, respirá tranquilo 😮‍💨');save();renderAll();closeModal();
+}
+function deleteDebt(id){S.debts=S.debts.filter(x=>x.id!==id);save();renderAll();}
+
+/* ===================== METAS (JARDÍN) ===================== */
+const STAGES=[
+  {min:0,  e:'🌰',label:'Semilla plantada'},
+  {min:.1, e:'🌱',label:'Está brotando'},
+  {min:.3, e:'🌿',label:'Creciendo fuerte'},
+  {min:.6, e:'🪴',label:'Ya es una planta'},
+  {min:.85,e:'🌳',label:'¡Casi un árbol!'},
+  {min:1,  e:'🌳🍎',label:'¡Cosechada! Meta cumplida'}
+];
+function stageOf(p){let s=STAGES[0];for(const st of STAGES)if(p>=st.min)s=st;return s;}
+function openGoalForm(){
+  openModal(`<h3>🌰 Plantar nueva meta</h3>
+    <label>¿Para qué estás ahorrando?</label><input id="f_name" placeholder="Viaje, auto, fondo de emergencia...">
+    <label>Ícono (emoji)</label><input id="f_icon" value="🎯">
+    <label>Moneda</label><select id="f_cur"><option>ARS</option><option>USD</option></select>
+    <label>Monto objetivo</label><input type="number" id="f_target" placeholder="0">
+    <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveGoal()">Plantar 🌱</button></div>`);
+}
+function saveGoal(){
+  const name=document.getElementById('f_name').value.trim(),t=+document.getElementById('f_target').value;
+  if(!name||!t)return toast('⚠️ Completá nombre y objetivo');
+  S.goals.push({id:uid(),name,icon:document.getElementById('f_icon').value||'🎯',currency:document.getElementById('f_cur').value,target:t,saved:0});
+  checkAchievement('first_goal',true);
+  registerActivity();addXp(20,'🌰 Meta plantada. ¡A regarla!');save();renderAll();closeModal();
+}
+function openContribute(id){
+  const g=S.goals.find(x=>x.id===id);
+  openModal(`<h3>${g.icon} Regar: ${g.name}</h3>
+    <p class="muted">Progreso: <b>${fmt(g.saved,g.currency)}</b> de ${fmt(g.target,g.currency)}</p>
+    <label>¿Desde qué billetera?</label><select id="f_wallet">${walletOptions()}</select>
+    <label>Monto a aportar (moneda de la billetera)</label><input type="number" id="f_amount" placeholder="0">
+    <p class="muted" style="margin-top:8px">El aporte sale de la billetera y queda guardado en la meta.</p>
+    <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="contribute('${id}')">Regar 💧</button></div>`);
+}
+function contribute(id){
+  const g=S.goals.find(x=>x.id===id);const w=walletById(document.getElementById('f_wallet').value);
+  const a=+document.getElementById('f_amount').value;
+  if(!a||a<=0)return toast('⚠️ Monto inválido');
+  if(a>w.balance)return toast('⚠️ Saldo insuficiente');
+  let add=a;
+  if(w.currency!==g.currency)add=w.currency==='USD'?a*S.fx:a/S.fx;
+  const before=g.saved/g.target;
+  w.balance-=a;g.saved+=add;
+  const after=g.saved/g.target;
+  checkAchievement('first_water',true);
+  if(after>=.5)checkAchievement('goal_half',true);
+  if(after>=1){checkAchievement('goal_done',true);addXp(100,'🌳🍎 ¡META CUMPLIDA! +100 XP · ¡Enorme!');}
+  else if(stageOf(after).e!==stageOf(before).e)addXp(20,`${stageOf(after).e} ¡Tu planta creció de etapa! +20 XP`);
+  else addXp(20,'💧 +20 XP por regar tu meta');
+  registerActivity();save();renderAll();closeModal();
+}
+function harvestGoal(id){
+  const g=S.goals.find(x=>x.id===id);
+  if(!confirm(`¿Cosechar "${g.name}"? El dinero (${fmt(g.saved,g.currency)}) vuelve a una billetera para que lo uses en tu objetivo.`))return;
+  const w=S.wallets.find(x=>x.currency===g.currency)||S.wallets[0];
+  if(w)w.balance+=w.currency===g.currency?g.saved:(g.currency==='USD'?g.saved*S.fx:g.saved/S.fx);
+  S.goals=S.goals.filter(x=>x.id!==id);
+  save();renderAll();toast('🍎 ¡Cosechada! El dinero volvió a '+(w?w.name:'ninguna billetera'));
+}
+function deleteGoal(id){
+  const g=S.goals.find(x=>x.id===id);
+  if(!confirm('¿Eliminar esta meta? Lo ahorrado vuelve a la primera billetera compatible.'))return;
+  const w=S.wallets.find(x=>x.currency===g.currency)||S.wallets[0];
+  if(w&&g.saved>0)w.balance+=w.currency===g.currency?g.saved:(g.currency==='USD'?g.saved*S.fx:g.saved/S.fx);
+  S.goals=S.goals.filter(x=>x.id!==id);save();renderAll();
+}
+
+/* ===================== GAMIFICACIÓN ===================== */
+const LEVELS=[
+  {xp:0,name:'Semilla 🌰'},{xp:50,name:'Brote 🌱'},{xp:150,name:'Retoño 🌿'},{xp:300,name:'Plantín 🪴'},
+  {xp:500,name:'Arbusto 🌾'},{xp:800,name:'Árbol joven 🌲'},{xp:1200,name:'Árbol firme 🌳'},
+  {xp:1700,name:'Árbol frondoso 🎄'},{xp:2400,name:'Bosque 🏞️'},{xp:3200,name:'Jardín maestro 🏆'}
+];
+function levelInfo(){
+  let i=0;for(let k=0;k<LEVELS.length;k++)if(S.xp>=LEVELS[k].xp)i=k;
+  const cur=LEVELS[i],next=LEVELS[i+1];
+  const prog=next?(S.xp-cur.xp)/(next.xp-cur.xp):1;
+  return {num:i+1,name:cur.name,prog};
+}
+function addXp(n,msg){
+  const before=levelInfo().num;
+  S.xp+=n;
+  const after=levelInfo();
+  if(msg)toast(msg);
+  if(after.num>before)setTimeout(()=>toast(`🎉 ¡Subiste a nivel ${after.num}: ${after.name}!`),1400);
+}
+function registerActivity(){
+  const t=today();
+  if(!S.activityDays.includes(t))S.activityDays.push(t);
+  const st=streak();
+  if(st>=3)checkAchievement('streak3',true);
+  if(st>=7)checkAchievement('streak7',true);
+}
+function streak(){
+  const days=new Set(S.activityDays);let n=0;const d=new Date();
+  if(!days.has(today()))d.setDate(d.getDate()-1);
+  while(days.has(d.toISOString().slice(0,10))){n++;d.setDate(d.getDate()-1);}
+  return n;
+}
+const BADGES=[
+  {id:'first_expense',icon:'✍️',name:'Primer registro',desc:'Registraste tu primer gasto'},
+  {id:'first_debt',icon:'😮‍💨',name:'Cuenta saldada',desc:'Pagaste tu primera deuda'},
+  {id:'all_debts',icon:'🧹',name:'Mes limpio',desc:'Pagaste todas las deudas del mes'},
+  {id:'first_goal',icon:'🌰',name:'Sembrador',desc:'Plantaste tu primera meta'},
+  {id:'first_water',icon:'💧',name:'Primer riego',desc:'Hiciste tu primer aporte'},
+  {id:'goal_half',icon:'🪴',name:'Mitad de camino',desc:'Una meta llegó al 50%'},
+  {id:'goal_done',icon:'🍎',name:'Cosecha',desc:'Completaste una meta'},
+  {id:'streak3',icon:'🔥',name:'Constancia',desc:'3 días seguidos de actividad'},
+  {id:'streak7',icon:'🚀',name:'Semana perfecta',desc:'7 días seguidos de actividad'},
+  {id:'usd_saver',icon:'🦅',name:'Refugio verde',desc:'Moviste ahorros a dólares'}
+];
+function checkAchievement(id,cond){
+  if(cond&&!S.achievements.includes(id)){
+    S.achievements.push(id);
+    const b=BADGES.find(x=>x.id===id);
+    setTimeout(()=>toast(`🏅 Logro desbloqueado: <b>${b.name}</b>`),700);
+    S.xp+=25;
+  }
+}
+
+/* ===================== RENDER ===================== */
+function renderAll(){renderHeader();renderResumen();renderWallets();renderExpenses();renderGarden();renderBadges();
+  document.getElementById('demoNote').style.display=S.demo?'flex':'none';
+  document.getElementById('fxInput').value=S.fx;
+}
+function renderHeader(){
+  const l=levelInfo();
+  document.getElementById('streak').textContent='🔥 '+streak();
+  document.getElementById('lvlName').textContent=l.name;
+  document.getElementById('lvlNum').textContent='Nv. '+l.num+' · '+S.xp+' XP';
+  document.getElementById('xpFill').style.width=(l.prog*100)+'%';
+}
+function renderResumen(){
+  const inc=S.income.month===thisMonth()?S.income.amount:0;
+  const debtPend=S.debts.filter(d=>!d.paid).reduce((s,d)=>s+d.amount,0);
+  const spent=S.expenses.filter(e=>e.date.slice(0,7)===thisMonth()).reduce((s,e)=>{const w=walletById(e.walletId);return s+toARS(e.amount,w?w.currency:'ARS');},0);
+  document.getElementById('incomeVal').innerHTML=fmt(inc)+` <button class="btn sm sec" style="vertical-align:middle" onclick="openIncomeForm()">✏️</button>`;
+  document.getElementById('debtPending').textContent='-'+fmt(debtPend);
+  document.getElementById('spentMonth').textContent='-'+fmt(spent);
+  document.getElementById('freeVal').textContent=fmt(inc-debtPend-spent);
+  // patrimonio
+  const tot=k=>S.wallets.filter(w=>w.kind===k).reduce((s,w)=>s+toARS(w.balance,w.currency),0);
+  const goalsTot=S.goals.reduce((s,g)=>s+toARS(g.saved,g.currency),0);
+  const net=tot('diario')+tot('ahorro')+tot('inversion')+goalsTot;
+  document.getElementById('netWorth').textContent=fmt(net);
+  document.getElementById('netWorthUsd').textContent='≈ '+fmt(net/S.fx,'USD');
+  document.getElementById('totDiario').textContent=fmt(tot('diario'));
+  document.getElementById('totAhorro').textContent=fmt(tot('ahorro'));
+  document.getElementById('totInversion').textContent=fmt(tot('inversion'));
+  document.getElementById('totMetas').textContent=fmt(goalsTot);
+  // deudas
+  document.getElementById('debtList').innerHTML=S.debts.length?S.debts.map(d=>`
+    <div class="item ${d.paid?'paid':''}">
+      <div class="info"><div class="t">${d.name}</div><div class="s">${fmt(d.amount)}</div></div>
+      ${d.paid?'<span class="pill" style="color:var(--green);border-color:var(--green)">✓ Pagada</span>'
+        :`<button class="btn sm" onclick="payDebt('${d.id}')">Pagar</button>`}
+      <button class="btn sm sec" onclick="deleteDebt('${d.id}')">🗑</button>
+    </div>`).join(''):'<div class="empty">Sin deudas cargadas. ¡Ese es el sueño! 🎉</div>';
+  // libertad financiera (regla del 4%)
+  const monthly=S.monthlyExpenseEstimate||spent+debtPend||1;
+  const target=monthly*300; // gasto anual / 0.04
+  const invested=tot('inversion');
+  const pct=Math.min(100,invested/target*100);
+  document.getElementById('fireBar').style.width=pct+'%';
+  document.getElementById('fireLabel').innerHTML=`<b class="gold">${pct.toFixed(2)}%</b> de tu libertad · llevas ${fmt(invested)} invertido`;
+  document.getElementById('fireTarget').textContent=fmt(target);
+  const passive=invested*0.04/12;
+  document.getElementById('firePassive').innerHTML=`💡 Hoy tus inversiones podrían pagarte <b class="pos">${fmt(passive)}/mes</b> para siempre (retiro del 4% anual). Tu gasto mensual estimado es <b>${fmt(monthly)}</b> <button class="btn sm sec" onclick="editMonthly()">✏️</button>`;
+}
+function editMonthly(){
+  const v=prompt('¿Cuánto gastás por mes aprox. (ARS)? Esto define tu meta de libertad financiera.',S.monthlyExpenseEstimate||'');
+  if(v!==null&&+v>0){S.monthlyExpenseEstimate=+v;save();renderAll();}
+}
+function renderWallets(){
+  document.getElementById('walletGrid').innerHTML=S.wallets.length?S.wallets.map(w=>`
+    <div class="wallet ${w.kind}" onclick="openWalletForm('${w.id}')" style="cursor:pointer">
+      <div class="row"><span style="font-size:1.4rem">${w.icon}</span><span class="pill ${w.currency.toLowerCase()}">${w.currency}</span></div>
+      <div class="kind">${w.kind==='diario'?'💳 Uso diario':w.kind==='ahorro'?'🐖 Ahorro':'📈 Inversión'}</div>
+      <div style="font-weight:700;margin-top:2px">${w.name}</div>
+      <div class="bal">${fmt(w.balance,w.currency)}</div>
+    </div>`).join(''):'<div class="empty">Creá tu primera billetera para empezar 👛</div>';
+}
+function renderExpenses(){
+  const monthExp=S.expenses.filter(e=>e.date.slice(0,7)===thisMonth());
+  const byCat={};let totCat=0;
+  monthExp.forEach(e=>{const w=walletById(e.walletId);const v=toARS(e.amount,w?w.currency:'ARS');byCat[e.category]=(byCat[e.category]||0)+v;totCat+=v;});
+  const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('catBars').innerHTML=cats.length?cats.map(([c,v])=>`
+    <div class="cat"><div class="row"><span>${c}</span><b>${fmt(v)} <span class="muted">(${(v/totCat*100).toFixed(0)}%)</span></b></div>
+    <div class="pbar"><div style="width:${v/totCat*100}%"></div></div></div>`).join('')
+    :'<div class="empty">Todavía no registraste gastos este mes.</div>';
+  document.getElementById('expenseList').innerHTML=S.expenses.length?S.expenses.slice(0,30).map(e=>{
+    const w=walletById(e.walletId);
+    return `<div class="item"><div class="info"><div class="t">${e.category}${e.note?' · '+e.note:''}</div>
+      <div class="s">${e.date} · ${w?w.icon+' '+w.name:''}</div></div>
+      <b class="neg">-${fmt(e.amount,w?w.currency:'ARS')}</b>
+      <button class="btn sm sec" onclick="deleteExpense('${e.id}')">🗑</button></div>`;}).join('')
+    :'<div class="empty">Sin movimientos aún.</div>';
+}
+function renderGarden(){
+  document.getElementById('gardenGrid').innerHTML=S.goals.length?S.goals.map(g=>{
+    const p=Math.min(1,g.saved/g.target);const st=stageOf(p);const done=p>=1;
+    return `<div class="plot ${done?'done':''}">
+      <div class="row"><span class="pill">${g.icon} ${g.currency}</span><button class="btn sm sec" onclick="deleteGoal('${g.id}')">🗑</button></div>
+      <div class="plant">${st.e}</div>
+      <div class="stage-label">${st.label}</div>
+      <div class="gname">${g.name}</div>
+      <div class="gnum">${fmt(g.saved,g.currency)} / ${fmt(g.target,g.currency)}</div>
+      <div class="pbar" style="margin-bottom:10px"><div style="width:${p*100}%"></div></div>
+      ${done?`<button class="btn" onclick="harvestGoal('${g.id}')">🍎 Cosechar</button>`
+        :`<button class="btn" onclick="openContribute('${g.id}')">💧 Regar</button>`}
+    </div>`;}).join('')
+    :'<div class="empty" style="grid-column:1/-1">Tu jardín está vacío. Plantá tu primera meta 🌰</div>';
+}
+function renderBadges(){
+  document.getElementById('badgeGrid').innerHTML=BADGES.map(b=>`
+    <div class="badge ${S.achievements.includes(b.id)?'':'locked'}"><div class="bi">${b.icon}</div><b>${b.name}</b><span class="muted">${b.desc}</span></div>`).join('');
+}
+renderAll();
+</script></script>
+</body>
+</html>
