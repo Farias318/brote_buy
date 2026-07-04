@@ -8,6 +8,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Brote 🌱 — Tu jardín financiero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0d1117; --bg2:#161b27; --card:#1c2333; --card2:#232b3e;
@@ -208,21 +211,85 @@
     header{justify-content:flex-end}
   }
 </style>
+<style id="theme-v6">
+  /* ============ REFINADO: tipografía, íconos, animaciones ============ */
+  body{font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif}
+  .ico{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-3px}
+  nav .ico{width:22px;height:22px}
+  .card h2 .ico,#cardsRail h3 .ico{color:var(--green)}
+  .side-link .ico{width:19px;height:19px}
+  .big,.wallet .bal,.item b,.row b,#fireTarget,.gnum,.xptext,.fx-inline input,.pill.warn{font-family:'JetBrains Mono',Consolas,monospace;font-variant-numeric:tabular-nums}
+  .big{font-weight:700}
+
+  /* Header integrado */
+  .player{gap:12px;padding:9px 14px;flex-wrap:wrap}
+  .streak{display:flex;align-items:center;gap:6px;color:var(--gold);font-size:.78rem;font-weight:600}
+  .streak b{font-size:.95rem}
+  .lvlname{font-size:.8rem;font-weight:600;white-space:nowrap}
+  .player .xpbar{width:130px;min-width:70px;margin:0;height:8px}
+  .xptext{font-size:.7rem;color:var(--muted);white-space:nowrap}
+  .syncbox{display:flex;align-items:center;gap:5px;font-size:.75rem;color:var(--muted)}
+  .syncbox.ok{color:var(--green)}.syncbox.busy{color:var(--gold)}.syncbox.err{color:var(--red)}
+  .iconbtn{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:6px 8px;color:var(--text);cursor:pointer;transition:.15s;line-height:0}
+  .iconbtn:hover{border-color:var(--green);transform:translateY(-1px)}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
+  .pill.warn{color:#ff8a80;border-color:rgba(248,81,73,.45);background:rgba(248,81,73,.08);font-size:.68rem}
+  .fx-inline input{border:none;background:transparent;padding:2px 4px;width:64px;color:var(--muted)}
+  @media(max-width:640px){.hide-s{display:none}.player .xpbar{width:70px}}
+
+  /* Animaciones: entrada en cascada */
+  @keyframes riseIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .tab.active .card{animation:riseIn .5s cubic-bezier(.2,.8,.3,1) backwards}
+  .tab.active .grid2 .card:nth-child(2){animation-delay:.07s}
+  .tab.active>.card:nth-of-type(2){animation-delay:.1s}
+  .tab.active>.card:nth-of-type(3){animation-delay:.17s}
+  .tab.active>.card:nth-of-type(4){animation-delay:.24s}
+  .item{animation:riseIn .4s cubic-bezier(.2,.8,.3,1) backwards}
+  .item:nth-child(2){animation-delay:.05s}.item:nth-child(3){animation-delay:.1s}.item:nth-child(4){animation-delay:.15s}
+  .item:nth-child(5){animation-delay:.2s}.item:nth-child(6){animation-delay:.25s}
+  .wallet{animation:riseIn .45s cubic-bezier(.2,.8,.3,1) backwards}
+  .wallets-grid .wallet:nth-child(2),#railCards .wallet:nth-child(2),#tabCards .wallet:nth-child(2){animation-delay:.08s}
+  .wallets-grid .wallet:nth-child(3),#railCards .wallet:nth-child(3),#tabCards .wallet:nth-child(3){animation-delay:.16s}
+  .wallets-grid .wallet:nth-child(4),#railCards .wallet:nth-child(4),#tabCards .wallet:nth-child(4){animation-delay:.24s}
+  .wallets-grid .wallet:nth-child(5),#railCards .wallet:nth-child(5),#tabCards .wallet:nth-child(5){animation-delay:.32s}
+  .plot{animation:riseIn .45s cubic-bezier(.2,.8,.3,1) backwards}
+  .garden .plot:nth-child(2){animation-delay:.08s}.garden .plot:nth-child(3){animation-delay:.16s}.garden .plot:nth-child(4){animation-delay:.24s}
+
+  /* Animaciones: barras y gráfico crecen */
+  @keyframes growX{from{transform:scaleX(0)}}
+  .pbar>div{transform-origin:left;animation:growX .9s cubic-bezier(.2,.8,.3,1) backwards}
+  @keyframes growY{from{transform:scaleY(0)}}
+  .cb .b{transform-origin:bottom;animation:growY .8s cubic-bezier(.2,.8,.3,1) backwards}
+  .cb:nth-child(2) .b{animation-delay:.06s}.cb:nth-child(3) .b{animation-delay:.12s}.cb:nth-child(4) .b{animation-delay:.18s}
+  .cb:nth-child(5) .b{animation-delay:.24s}.cb:nth-child(6) .b{animation-delay:.3s}.cb:nth-child(7) .b{animation-delay:.36s}
+
+  /* Micro-interacciones */
+  .btn:hover{transform:translateY(-2px);filter:brightness(1.08)}
+  .btn:active{transform:scale(.96)}
+  .card{transition:transform .25s ease,box-shadow .25s ease}
+  .card:hover{transform:translateY(-2px)}
+  .wallet.mini{transition:transform .2s,filter .2s,opacity .2s}
+  .wallet.mini:hover{transform:translateY(-3px)}
+  .badge{transition:transform .2s}
+  .badge:hover{transform:translateY(-2px) scale(1.03)}
+  .side-link:active{transform:scale(.97)}
+  @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
 <aside id="sidebar">
   <div class="side-logo">🌱 <span style="background:var(--grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Brote</span></div>
-  <button class="side-link active" data-tab="resumen" onclick="showTab('resumen')">🏠 Resumen</button>
-  <button class="side-link" data-tab="billeteras" onclick="showTab('billeteras')">👛 Billeteras</button>
-  <button class="side-link" data-tab="gastos" onclick="showTab('gastos')">🧾 Gastos</button>
-  <button class="side-link" data-tab="metas" onclick="showTab('metas')">🌳 Jardín</button>
-  <button class="side-link" data-tab="tarjetas" onclick="showTab('tarjetas')">💳 Tarjetas</button>
+  <button class="side-link active" data-tab="resumen" onclick="showTab('resumen')"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg> Resumen</button>
+  <button class="side-link" data-tab="billeteras" onclick="showTab('billeteras')"><svg class="ico" viewBox="0 0 24 24"><path d="M18 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H5"/><circle cx="16" cy="13.5" r="1.2"/></svg> Billeteras</button>
+  <button class="side-link" data-tab="gastos" onclick="showTab('gastos')"><svg class="ico" viewBox="0 0 24 24"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4L10 21l-2-1.4L6 21zM9 8h6M9 12h6"/></svg> Gastos</button>
+  <button class="side-link" data-tab="metas" onclick="showTab('metas')"><svg class="ico" viewBox="0 0 24 24"><path d="M12 21v-8M12 13C12 9 9 7 5 7c0 4 3 6 7 6zM12 13c0-4 3-6 7-6 0 4-3 6-7 6z"/></svg> Jardín</button>
+  <button class="side-link" data-tab="tarjetas" onclick="showTab('tarjetas')"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10.5h18"/></svg> Tarjetas</button>
   <div class="side-bottom">
-    <button class="side-link" onclick="openSettings()">⚙️ Ajustes</button>
+    <button class="side-link" onclick="openSettings()"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.7M12 18.8v2.7M2.5 12h2.7M18.8 12h2.7M5.3 5.3l1.9 1.9M16.8 16.8l1.9 1.9M18.7 5.3l-1.9 1.9M7.2 16.8l-1.9 1.9"/></svg> Ajustes</button>
   </div>
 </aside>
 <aside id="cardsRail">
-  <h3>💳 Mis tarjetas</h3>
+  <h3><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10.5h18"/></svg> Mis billeteras</h3>
   <div class="railhint">Tocá una tarjeta (👁️) para filtrar qué gastos y deudas ves en el centro.</div>
   <div style="display:flex;gap:8px;margin-bottom:14px">
     <button class="btn sm" onclick="openExpenseForm()">+ Gasto</button>
@@ -236,13 +303,12 @@
   <header>
     <div class="logo">🌱 <span>Brote</span></div>
     <div class="player">
-      <div class="streak" id="streak">🔥 0</div>
-      <div class="lvl-box">
-        <div class="lvl-name"><span id="lvlName">Semilla</span><b id="lvlNum">Nv. 1</b></div>
-        <div class="xpbar"><div id="xpFill" style="width:0%"></div></div>
-      </div>
-      <span id="syncDot" title="Sincronización" style="cursor:default;font-size:.9rem">☁️</span>
-      <button class="btn sm sec" onclick="openSettings()" title="Ajustes y respaldo">⚙️</button>
+      <span class="streak"><svg class="ico" viewBox="0 0 24 24"><path d="M12 3s5 4.5 5 9.5a5 5 0 0 1-10 0C7 9 9 7.5 9.5 5.5c1 1 1.7 2.2 1.5 3.7C12.5 7.5 12 5 12 3z"/></svg><b id="streakN">0</b><span class="hide-s" id="streakWord">días de racha</span></span>
+      <span class="lvlname" id="lvlName">Semilla · Nv. 1</span>
+      <div class="xpbar"><div id="xpFill" style="width:0%"></div></div>
+      <span class="xptext" id="xpText">0 XP</span>
+      <span class="syncbox" id="syncDot" title="Sincronización"></span>
+      <button class="iconbtn" onclick="openSettings()" title="Ajustes y respaldo"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.7M12 18.8v2.7M2.5 12h2.7M18.8 12h2.7M5.3 5.3l1.9 1.9M16.8 16.8l1.9 1.9M18.7 5.3l-1.9 1.9M7.2 16.8l-1.9 1.9"/></svg></button>
     </div>
   </header>
 
@@ -255,7 +321,8 @@
   <div class="tab active" id="tab-resumen">
     <div class="grid2">
       <div class="card">
-        <h2><span class="left">💵 Este mes</span></h2>
+        <h2><span class="left"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9.5h16M8.5 3v4M15.5 3v4"/></svg> Este mes</span>
+        <button class="btn sm sec" onclick="openIncomeForm()">✎ Editar</button></h2>
         <div class="muted">Ingreso cobrado</div>
         <div class="big pos" id="incomeVal">$0</div>
         <div style="margin-top:10px" class="row">
@@ -267,33 +334,33 @@
         </div>
       </div>
       <div class="card">
-        <h2><span class="left">👛 Patrimonio total</span>
-          <span class="fx-inline">USD→ARS <input type="number" id="fxInput" onchange="setFx(this.value)"><button class="btn sm sec" onclick="fetchDollar(true)" title="Actualizar cotización">🔄</button></span>
+        <h2><span class="left"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg> Patrimonio total</span>
+          <span class="fx-inline">USD→ARS <input type="number" id="fxInput" onchange="setFx(this.value)"><button class="iconbtn" onclick="fetchDollar(true)" title="Actualizar cotización"><svg class="ico" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4.5h-4.5"/></svg></button></span>
         </h2>
         <div class="big" id="netWorth">$0</div>
         <div class="muted" id="netWorthUsd"></div>
         <div style="margin-top:10px">
-          <div class="row"><span class="muted">💳 Uso diario</span><b id="totDiario">$0</b></div>
-          <div class="row"><span class="muted">🐖 Ahorro</span><b class="pos" id="totAhorro">$0</b></div>
-          <div class="row"><span class="muted">📈 Inversión</span><b class="gold" id="totInversion">$0</b></div>
-          <div class="row"><span class="muted">🎯 En metas</span><b class="blue" id="totMetas">$0</b></div>
+          <div class="row"><span class="muted"><span class="dot" style="background:#58a6ff"></span>Uso diario</span><b id="totDiario">$0</b></div>
+          <div class="row"><span class="muted"><span class="dot" style="background:#f472b6"></span>Ahorro</span><b class="pos" id="totAhorro">$0</b></div>
+          <div class="row"><span class="muted"><span class="dot" style="background:#e8b64a"></span>Inversión</span><b class="gold" id="totInversion">$0</b></div>
+          <div class="row"><span class="muted"><span class="dot" style="background:#34d399"></span>En metas</span><b class="blue" id="totMetas">$0</b></div>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <h2><span class="left">📊 Estadística mensual</span></h2>
+      <h2><span class="left"><svg class="ico" viewBox="0 0 24 24"><path d="M4 4v16h16"/><path d="M9 16v-5M13 16V8M17 16v-3"/></svg> Estadística mensual</span></h2>
       <div id="chartBars" class="chartbars"></div>
       <div class="chart-legend"><span><i style="background:linear-gradient(180deg,#34d399,#0e6b4b)"></i>Ingresos</span><span><i style="background:linear-gradient(180deg,#e8b64a,#8f6a17)"></i>Gastos + deudas pagadas</span></div>
     </div>
 
     <div class="card">
-      <h2><span class="left">🧾 Deudas del mes</span><button class="btn sm sec" onclick="openDebtForm()">+ Agregar</button></h2>
+      <h2><span class="left"><svg class="ico" viewBox="0 0 24 24"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4L10 21l-2-1.4L6 21zM9 8h6M9 12h6"/></svg> Deudas del mes <span class="pill warn" id="debtSummary" style="display:none"></span></span><button class="btn sm sec" onclick="openDebtForm()">+ Agregar</button></h2>
       <div id="debtList"></div>
     </div>
 
     <div class="card">
-      <h2><span class="left">🏝️ Camino a la libertad financiera</span></h2>
+      <h2><span class="left"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/></svg> Camino a la libertad financiera</span></h2>
       <div class="muted" style="margin-bottom:8px">Regla del 4%: cuando tus inversiones alcanzan <b>300× tu gasto mensual</b>, podrías vivir de ellas retirando el 4% anual.</div>
       <div class="pbar goldbar" style="height:16px"><div id="fireBar" style="width:0%"></div></div>
       <div class="row" style="margin-top:8px">
@@ -304,7 +371,7 @@
     </div>
 
     <div class="card">
-      <h2><span class="left">📅 Historial de meses</span></h2>
+      <h2><span class="left"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9.5h16M8.5 3v4M15.5 3v4"/></svg> Historial de meses</span></h2>
       <div id="historyList"></div>
     </div>
   </div>
@@ -321,8 +388,8 @@
   <!-- ============ TAB: GASTOS ============ -->
   <div class="tab" id="tab-gastos">
     <div class="topbtns"><button class="btn" onclick="openExpenseForm()">+ Registrar gasto</button></div>
-    <div class="card"><h2><span class="left">📊 ¿En qué se va la plata? (mes actual)</span></h2><div id="catBars"></div></div>
-    <div class="card"><h2><span class="left">🧾 Últimos movimientos</span></h2><div id="expenseList"></div></div>
+    <div class="card"><h2><span class="left"><svg class="ico" viewBox="0 0 24 24"><path d="M4 4v16h16"/><path d="M9 16v-5M13 16V8M17 16v-3"/></svg> ¿En qué se va la plata? (mes actual)</span></h2><div id="catBars"></div></div>
+    <div class="card"><h2><span class="left"><svg class="ico" viewBox="0 0 24 24"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4L10 21l-2-1.4L6 21zM9 8h6M9 12h6"/></svg> Últimos movimientos</span></h2><div id="expenseList"></div></div>
   </div>
 
   <!-- ============ TAB: TARJETAS ============ -->
@@ -345,11 +412,11 @@
 </div>
 
 <nav>
-  <button class="active" data-tab="resumen" onclick="showTab('resumen')"><span class="ic">🏠</span>Resumen</button>
-  <button data-tab="billeteras" onclick="showTab('billeteras')"><span class="ic">👛</span>Billeteras</button>
-  <button data-tab="gastos" onclick="showTab('gastos')"><span class="ic">🧾</span>Gastos</button>
-  <button data-tab="metas" onclick="showTab('metas')"><span class="ic">🌳</span>Jardín</button>
-  <button data-tab="tarjetas" onclick="showTab('tarjetas')"><span class="ic">💳</span>Tarjetas</button>
+  <button class="active" data-tab="resumen" onclick="showTab('resumen')"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>Resumen</button>
+  <button data-tab="billeteras" onclick="showTab('billeteras')"><svg class="ico" viewBox="0 0 24 24"><path d="M18 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H5"/><circle cx="16" cy="13.5" r="1.2"/></svg>Billeteras</button>
+  <button data-tab="gastos" onclick="showTab('gastos')"><svg class="ico" viewBox="0 0 24 24"><path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4L10 21l-2-1.4L6 21zM9 8h6M9 12h6"/></svg>Gastos</button>
+  <button data-tab="metas" onclick="showTab('metas')"><svg class="ico" viewBox="0 0 24 24"><path d="M12 21v-8M12 13C12 9 9 7 5 7c0 4 3 6 7 6zM12 13c0-4 3-6 7-6 0 4-3 6-7 6z"/></svg>Jardín</button>
+  <button data-tab="tarjetas" onclick="showTab('tarjetas')"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10.5h18"/></svg>Tarjetas</button>
 </nav>
 
 <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
@@ -412,6 +479,29 @@ function walletById(id){return S.wallets.find(w=>w.id===id);}
 function setFx(v){const n=+v;if(n>0){S.fx=n;S.fxSource='manual';save();renderAll();}}
 function toast(msg){const t=document.getElementById('toast');t.innerHTML=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
 
+/* Íconos SVG para contenido dinámico */
+const ICO={
+  cloud:'<svg class="ico" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 1 1 .6-8.96A6 6 0 0 1 19 11.5 3.5 3.5 0 0 1 18 18z"/></svg>',
+  eye:'<svg class="ico" viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>',
+  eyeoff:'<svg class="ico" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.8A10.6 10.6 0 0 1 22 12a15.7 15.7 0 0 1-3.2 3.9M6.6 6.6A15.2 15.2 0 0 0 2 12s3.5 6.5 10 6.5a9.9 9.9 0 0 0 4.4-1"/></svg>'
+};
+
+/* Count-up animado para montos */
+function setMoney(id,val,cur='ARS',prefix=''){
+  const el=document.getElementById(id);if(!el)return;
+  const from=el.dataset.v!==undefined?+el.dataset.v:val;
+  el.dataset.v=val;
+  if(from===val||window.matchMedia('(prefers-reduced-motion: reduce)').matches){el.textContent=prefix+fmt(val,cur);return;}
+  cancelAnimationFrame(el._raf);
+  const t0=performance.now(),dur=650;
+  const step=t=>{
+    const p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3);
+    el.textContent=prefix+fmt(from+(val-from)*e,cur);
+    if(p<1)el._raf=requestAnimationFrame(step);
+  };
+  el._raf=requestAnimationFrame(step);
+}
+
 /* ===================== DÓLAR AUTOMÁTICO ===================== */
 async function fetchDollar(manual){
   if(S.fxSource==='manual'&&!manual)return;
@@ -434,7 +524,13 @@ let SYNC=JSON.parse(localStorage.getItem(SYNCKEY)||'null')||{token:'',gistId:''}
 function saveSync(){localStorage.setItem(SYNCKEY,JSON.stringify(SYNC));}
 function syncOn(){return !!(SYNC.token&&SYNC.gistId);}
 function gh(){return {'Authorization':'Bearer '+SYNC.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'};}
-function setSyncDot(s,title){const el=document.getElementById('syncDot');if(el){el.textContent=s;el.title=title||'';}}
+function setSyncDot(s,title){
+  const el=document.getElementById('syncDot');if(!el)return;
+  const st=s.includes('✓')?['ok','Sincronizado']:s.includes('…')?['busy','Sincronizando…']:s.includes('!')?['err','Sin conexión']:['','Sin conectar'];
+  el.className='syncbox '+st[0];
+  el.innerHTML=ICO.cloud+'<span class="hide-s">'+st[1]+'</span>';
+  el.title=title||st[1];
+}
 let pushTimer=null;
 function schedulePush(){
   if(!syncOn())return;
@@ -629,7 +725,7 @@ function renderCards(){
   const html=S.wallets.length?S.wallets.map(w=>{
     const vis=isVisible(w.id);
     return `<div class="wallet mini ${w.kind} ${vis?'':'hiddencard'}" onclick="toggleEye('${w.id}')" title="${vis?'Tocá para ocultar sus gastos':'Tocá para volver a mostrarla'}">
-      <div class="row"><span style="font-weight:700">${w.icon} ${w.name}</span><span class="eye">${vis?'👁️':'🙈'}</span></div>
+      <div class="row"><span style="font-weight:700">${w.icon} ${w.name}</span><span class="eye">${vis?ICO.eye:ICO.eyeoff}</span></div>
       <div class="kind">${w.kind==='diario'?'USO DIARIO':w.kind==='ahorro'?'AHORRO':'INVERSIÓN'} · ${w.currency}</div>
       <div class="bal">${fmt(w.balance,w.currency)}</div>
       <div style="font-size:.72rem;opacity:.85;position:relative">Gasto del mes: ${fmt(spentFor(w),w.currency)}</div>
@@ -858,7 +954,7 @@ function levelInfo(){
   let i=0;for(let k=0;k<LEVELS.length;k++)if(S.xp>=LEVELS[k].xp)i=k;
   const cur=LEVELS[i],next=LEVELS[i+1];
   const prog=next?(S.xp-cur.xp)/(next.xp-cur.xp):1;
-  return {num:i+1,name:cur.name,prog};
+  return {num:i+1,name:cur.name,prog,nextXp:next?next.xp:null};
 }
 function addXp(n,msg){
   const before=levelInfo().num;
@@ -907,37 +1003,43 @@ function renderAll(){renderHeader();renderResumen();renderWallets();renderExpens
   document.getElementById('fxInput').value=S.fx;
 }
 function renderHeader(){
-  const l=levelInfo();
-  document.getElementById('streak').textContent='🔥 '+streak();
-  document.getElementById('lvlName').textContent=l.name;
-  document.getElementById('lvlNum').textContent='Nv. '+l.num+' · '+S.xp+' XP';
+  const l=levelInfo();const st=streak();
+  document.getElementById('streakN').textContent=st;
+  document.getElementById('streakWord').textContent=st===1?'día de racha':'días de racha';
+  document.getElementById('lvlName').textContent=l.name+' · Nv. '+l.num;
+  document.getElementById('xpText').textContent=S.xp+' / '+(l.nextXp!==null?l.nextXp:'MAX')+' XP';
   document.getElementById('xpFill').style.width=(l.prog*100)+'%';
 }
 function renderResumen(){
   const inc=S.income.month===thisMonth()?S.income.amount:0;
   const debtPend=S.debts.filter(d=>!d.paid).reduce((s,d)=>s+d.amount,0);
   const spent=S.expenses.filter(e=>e.date.slice(0,7)===thisMonth()).reduce((s,e)=>{const w=walletById(e.walletId);return s+toARS(e.amount,w?w.currency:'ARS');},0);
-  document.getElementById('incomeVal').innerHTML=fmt(inc)+` <button class="btn sm sec" style="vertical-align:middle" onclick="openIncomeForm()">✏️</button>`;
-  document.getElementById('debtPending').textContent='-'+fmt(debtPend);
-  document.getElementById('spentMonth').textContent='-'+fmt(spent);
-  document.getElementById('freeVal').textContent=fmt(inc-debtPend-spent);
+  setMoney('incomeVal',inc);
+  setMoney('debtPending',debtPend,'ARS','-');
+  setMoney('spentMonth',spent,'ARS','-');
+  setMoney('freeVal',inc-debtPend-spent);
+  // resumen de deudas pendientes (pill del header de la card)
+  const pendN=S.debts.filter(d=>!d.paid).length;
+  const ds=document.getElementById('debtSummary');
+  if(ds){ds.style.display=pendN?'inline-block':'none';ds.textContent=pendN+(pendN===1?' pendiente':' pendientes')+' · '+fmt(debtPend);}
   // patrimonio
   const tot=k=>S.wallets.filter(w=>w.kind===k).reduce((s,w)=>s+toARS(w.balance,w.currency),0);
   const goalsTot=S.goals.reduce((s,g)=>s+toARS(g.saved,g.currency),0);
   const net=tot('diario')+tot('ahorro')+tot('inversion')+goalsTot;
-  document.getElementById('netWorth').textContent=fmt(net);
-  document.getElementById('netWorthUsd').textContent='≈ '+fmt(net/S.fx,'USD');
-  document.getElementById('totDiario').textContent=fmt(tot('diario'));
-  document.getElementById('totAhorro').textContent=fmt(tot('ahorro'));
-  document.getElementById('totInversion').textContent=fmt(tot('inversion'));
-  document.getElementById('totMetas').textContent=fmt(goalsTot);
+  setMoney('netWorth',net);
+  setMoney('netWorthUsd',net/S.fx,'USD','≈ ');
+  setMoney('totDiario',tot('diario'));
+  setMoney('totAhorro',tot('ahorro'));
+  setMoney('totInversion',tot('inversion'));
+  setMoney('totMetas',goalsTot);
   // deudas (filtradas por tarjetas visibles)
   const debtsShown=filterOn()?S.debts.filter(d=>d.walletId&&isVisible(d.walletId)):S.debts;
   document.getElementById('debtList').innerHTML=filterLabel()+(debtsShown.length?debtsShown.map(d=>{
     const dw=d.walletId?walletById(d.walletId):null;
     return `
     <div class="item ${d.paid?'paid':''}">
-      <div class="info"><div class="t">${d.name}</div><div class="s">${fmt(d.amount)}${dw?' · '+dw.icon+' '+dw.name:''}</div></div>
+      <div class="info"><div class="t">${d.name}</div>${dw?`<div class="s">${dw.icon} ${dw.name}</div>`:''}</div>
+      <b>${fmt(d.amount)}</b>
       ${d.paid?'<span class="pill" style="color:var(--green);border-color:var(--green)">✓ Pagada</span>'
         :`<button class="btn sm" onclick="payDebt('${d.id}')">Pagar</button>`}
       <button class="btn sm sec" onclick="deleteDebt('${d.id}')">🗑</button>
