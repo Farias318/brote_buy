@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
-<head> 
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0d1117">
@@ -112,8 +112,9 @@
   .modal{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px;width:100%;max-width:420px;max-height:88vh;overflow-y:auto}
   .modal h3{margin-bottom:14px}
   label{display:block;font-size:.78rem;color:var(--muted);margin:10px 0 4px}
-  input,select{width:100%;background:#0b0f17;border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:.95rem;font-family:inherit}
-  input:focus,select:focus{outline:none;border-color:var(--green)}
+  input,select,textarea{width:100%;background:#0b0f17;border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:.95rem;font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green)}
+  textarea{min-height:80px;resize:vertical}
   .modal .actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
 
   /* TOAST */
@@ -139,6 +140,8 @@
         <div class="lvl-name"><span id="lvlName">Semilla</span><b id="lvlNum">Nv. 1</b></div>
         <div class="xpbar"><div id="xpFill" style="width:0%"></div></div>
       </div>
+      <span id="syncDot" title="Sincronización" style="cursor:default;font-size:.9rem">☁️</span>
+      <button class="btn sm sec" onclick="openSettings()" title="Ajustes y respaldo">⚙️</button>
     </div>
   </header>
 
@@ -164,7 +167,7 @@
       </div>
       <div class="card">
         <h2><span class="left">👛 Patrimonio total</span>
-          <span class="fx-inline">USD→ARS <input type="number" id="fxInput" onchange="setFx(this.value)"></span>
+          <span class="fx-inline">USD→ARS <input type="number" id="fxInput" onchange="setFx(this.value)"><button class="btn sm sec" onclick="fetchDollar(true)" title="Actualizar cotización">🔄</button></span>
         </h2>
         <div class="big" id="netWorth">$0</div>
         <div class="muted" id="netWorthUsd"></div>
@@ -191,6 +194,11 @@
         <span class="muted">Meta: <b class="gold" id="fireTarget">$0</b></span>
       </div>
       <div class="muted" style="margin-top:8px" id="firePassive"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="left">📅 Historial de meses</span></h2>
+      <div id="historyList"></div>
     </div>
   </div>
 
@@ -241,7 +249,7 @@ const thisMonth=()=>today().slice(0,7);
 
 function sampleData(){
   return {
-    demo:true, fx:1500, xp:0, achievements:[], activityDays:[today()],
+    demo:true, fx:1500, fxSource:'blue', xp:0, achievements:[], activityDays:[today()], history:[],
     income:{month:thisMonth(),amount:1500000},
     monthlyExpenseEstimate:900000,
     wallets:[
@@ -266,11 +274,13 @@ function sampleData(){
   };
 }
 let S=load();
+if(!S.history)S.history=[];
+if(!S.fxSource)S.fxSource='blue';
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.wallets)return d;}catch(e){}return sampleData();}
-function save(){localStorage.setItem(KEY,JSON.stringify(S));}
+function save(){S.lastModified=Date.now();localStorage.setItem(KEY,JSON.stringify(S));schedulePush();}
 function resetAll(){
   if(!confirm('¿Borrar todo y empezar de cero con tus datos reales?'))return;
-  S={demo:false,fx:S.fx,xp:0,achievements:[],activityDays:[],income:{month:thisMonth(),amount:0},monthlyExpenseEstimate:0,wallets:[],debts:[],expenses:[],goals:[]};
+  S={demo:false,fx:S.fx,fxSource:S.fxSource,xp:0,achievements:[],activityDays:[],history:[],income:{month:thisMonth(),amount:0},monthlyExpenseEstimate:0,wallets:[],debts:[],expenses:[],goals:[]};
   save();renderAll();openIncomeForm();
 }
 
@@ -280,8 +290,201 @@ function fmt(n,cur='ARS'){
 }
 const toARS=(n,cur)=>cur==='USD'?n*S.fx:n;
 function walletById(id){return S.wallets.find(w=>w.id===id);}
-function setFx(v){const n=+v;if(n>0){S.fx=n;save();renderAll();}}
+function setFx(v){const n=+v;if(n>0){S.fx=n;S.fxSource='manual';save();renderAll();}}
 function toast(msg){const t=document.getElementById('toast');t.innerHTML=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* ===================== DÓLAR AUTOMÁTICO ===================== */
+async function fetchDollar(manual){
+  if(S.fxSource==='manual'&&!manual)return;
+  const src=(S.fxSource==='manual'||!S.fxSource)?'blue':S.fxSource;
+  try{
+    const r=await fetch('https://dolarapi.com/v1/dolares/'+src);
+    const d=await r.json();
+    if(d&&+d.venta>0){
+      S.fx=Math.round(+d.venta);
+      if(S.fxSource==='manual')S.fxSource=src;
+      save();renderAll();
+      if(manual)toast('💱 Dólar '+src+' actualizado: $'+S.fx);
+    }
+  }catch(e){if(manual)toast('⚠️ No pude obtener la cotización (¿sin internet?). Editá el valor a mano.');}
+}
+
+/* ===================== SINCRONIZACIÓN AUTOMÁTICA (GitHub Gist) ===================== */
+const SYNCKEY='brote_sync';
+let SYNC=JSON.parse(localStorage.getItem(SYNCKEY)||'null')||{token:'',gistId:''};
+function saveSync(){localStorage.setItem(SYNCKEY,JSON.stringify(SYNC));}
+function syncOn(){return !!(SYNC.token&&SYNC.gistId);}
+function gh(){return {'Authorization':'Bearer '+SYNC.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'};}
+function setSyncDot(s,title){const el=document.getElementById('syncDot');if(el){el.textContent=s;el.title=title||'';}}
+let pushTimer=null;
+function schedulePush(){
+  if(!syncOn())return;
+  setSyncDot('☁️…','Guardando en la nube...');
+  clearTimeout(pushTimer);pushTimer=setTimeout(pushNow,1500);
+}
+async function pushNow(){
+  if(!syncOn())return;
+  try{
+    const r=await fetch('https://api.github.com/gists/'+SYNC.gistId,{method:'PATCH',headers:gh(),
+      body:JSON.stringify({files:{'brote-datos.json':{content:JSON.stringify(S)}}})});
+    if(!r.ok)throw 0;
+    setSyncDot('☁️✓','Sincronizado');
+  }catch(e){setSyncDot('☁️!','No se pudo subir. Se reintenta con el próximo cambio.');}
+}
+async function syncPull(){
+  if(!syncOn())return;
+  setSyncDot('☁️…','Buscando datos en la nube...');
+  try{
+    const r=await fetch('https://api.github.com/gists/'+SYNC.gistId,{headers:gh()});
+    if(!r.ok)throw 0;
+    const g=await r.json();
+    const f=g.files&&g.files['brote-datos.json'];
+    if(!f)throw 0;
+    let content=f.content;
+    if(f.truncated){const rr=await fetch(f.raw_url);content=await rr.text();}
+    const cloud=JSON.parse(content);
+    if((cloud.lastModified||0)>(S.lastModified||0)){
+      S=cloud;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';
+      localStorage.setItem(KEY,JSON.stringify(S));
+      renderAll();toast('☁️ Datos actualizados desde la nube');
+    }else if((S.lastModified||0)>(cloud.lastModified||0)){pushNow();return;}
+    setSyncDot('☁️✓','Sincronizado');
+  }catch(e){setSyncDot('☁️!','Error al sincronizar. Revisá el token en ⚙️');}
+}
+async function connectSync(){
+  const token=document.getElementById('f_token').value.trim();
+  if(!token)return toast('⚠️ Pegá el token primero');
+  SYNC.token=token;
+  try{
+    const r=await fetch('https://api.github.com/gists?per_page=100',{headers:gh()});
+    if(!r.ok)throw 0;
+    const list=await r.json();
+    const found=list.find(g=>g.files&&g.files['brote-datos.json']);
+    if(found){
+      SYNC.gistId=found.id;saveSync();
+      closeModal();await syncPull();
+      toast('☁️ Conectado: encontré tus datos en la nube y los sincronicé');
+    }else{
+      S.lastModified=Date.now();localStorage.setItem(KEY,JSON.stringify(S));
+      const c=await fetch('https://api.github.com/gists',{method:'POST',headers:gh(),
+        body:JSON.stringify({description:'Datos de Brote 🌱 (respaldo automático)',public:false,
+        files:{'brote-datos.json':{content:JSON.stringify(S)}}})});
+      if(!c.ok)throw 0;
+      const g=await c.json();SYNC.gistId=g.id;saveSync();
+      closeModal();setSyncDot('☁️✓','Sincronizado');
+      toast('☁️ ¡Sincronización activada! Repetí esto en tu otro dispositivo con el MISMO token.');
+    }
+  }catch(e){SYNC.token='';saveSync();toast('⚠️ Token inválido o sin el permiso "gist". Revisalo.');}
+}
+function disconnectSync(){
+  SYNC={token:'',gistId:''};saveSync();
+  setSyncDot('☁️','Sin sincronizar');closeModal();
+  toast('Sincronización desactivada en este dispositivo (tus datos locales siguen acá)');
+}
+
+/* ===================== EXPORTAR / IMPORTAR ===================== */
+async function shareData(){
+  const file=new File([JSON.stringify(S)],'brote-datos-'+today()+'.json',{type:'application/json'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],title:'Respaldo Brote 🌱'});}catch(e){}
+  }else exportData();
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='brote-datos-'+today()+'.json';
+  a.click();
+  toast('📦 Respaldo descargado');
+}
+function copyData(){
+  navigator.clipboard.writeText(JSON.stringify(S))
+    .then(()=>toast('📋 Datos copiados. Pegalos en el otro dispositivo (⚙️ → Importar).'))
+    .catch(()=>toast('⚠️ No se pudo copiar. Usá "Descargar respaldo".'));
+}
+function applyImport(txt){
+  try{
+    const d=JSON.parse(txt);
+    if(!d.wallets||!Array.isArray(d.wallets))throw 0;
+    if(!confirm('Esto reemplaza TODOS los datos de este dispositivo con los importados. ¿Continuar?'))return;
+    S=d;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';
+    save();renderAll();closeModal();toast('✅ Datos importados correctamente');
+  }catch(e){toast('⚠️ Eso no parece un respaldo válido de Brote');}
+}
+function importFile(input){
+  const f=input.files[0];if(!f)return;
+  const r=new FileReader();r.onload=()=>applyImport(r.result);r.readAsText(f);
+}
+function importPasted(){
+  const t=document.getElementById('f_paste').value.trim();
+  if(!t)return toast('⚠️ Pegá primero el texto del respaldo');
+  applyImport(t);
+}
+function openSettings(){
+  openModal(`<h3>⚙️ Ajustes y respaldo</h3>
+    <h3 class="sub">☁️ Sincronización automática entre dispositivos</h3>
+    ${syncOn()
+      ?`<p class="muted">✅ <b style="color:var(--green)">Activada.</b> Tus datos se guardan solos en un Gist secreto de tu GitHub. Al abrir la app o recargar (F5) en otro dispositivo conectado, se actualizan solos.</p>
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="btn sm sec" onclick="syncPull()">🔄 Sincronizar ahora</button><button class="btn sm danger" onclick="disconnectSync()">Desactivar acá</button></div>`
+      :`<p class="muted">Guardado automático en tu cuenta de GitHub (gratis y privado):<br>
+        1. <a href="https://github.com/settings/tokens/new?scopes=gist&description=Brote%20Sync" target="_blank" style="color:var(--blue)">Tocá acá para crear el token</a> (el permiso "gist" ya viene tildado). En Expiration elegí <b>No expiration</b> y tocá <b>Generate token</b>.<br>
+        2. Copiá el token (empieza con ghp_) y pegalo acá:</p>
+      <input id="f_token" placeholder="ghp_...">
+      <div style="margin-top:8px"><button class="btn sm" onclick="connectSync()">☁️ Conectar</button></div>
+      <p class="muted" style="margin-top:6px">Después repetí estos 2 pasos en tu otro dispositivo usando el <b>mismo token</b> — va a encontrar tus datos solo.</p>`}
+    <label style="margin-top:18px">Cotización del dólar</label>
+    <select id="f_fxsrc" onchange="S.fxSource=this.value;save();if(this.value!=='manual')fetchDollar(true);">
+      <option value="blue" ${S.fxSource==='blue'?'selected':''}>Dólar blue (automático)</option>
+      <option value="oficial" ${S.fxSource==='oficial'?'selected':''}>Dólar oficial (automático)</option>
+      <option value="cripto" ${S.fxSource==='cripto'?'selected':''}>Dólar cripto (automático)</option>
+      <option value="manual" ${S.fxSource==='manual'?'selected':''}>Manual (lo escribo yo)</option>
+    </select>
+    <p class="muted" style="margin-top:6px">Valor actual: <b>$${S.fx}</b> · se actualiza solo al abrir la app <button class="btn sm sec" onclick="fetchDollar(true)">🔄 Actualizar ahora</button></p>
+    <h3 class="sub" style="margin-top:18px">📤 Respaldo manual (por las dudas)</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn sm" onclick="shareData()">📲 Compartir</button>
+      <button class="btn sm sec" onclick="exportData()">⬇️ Descargar</button>
+      <button class="btn sm sec" onclick="copyData()">📋 Copiar</button>
+    </div>
+    <p class="muted" style="margin-top:6px">"Compartir" abre WhatsApp/mail directo (ideal en el celu). En la compu también podés <b>arrastrar</b> un archivo de respaldo sobre la app para importarlo.</p>
+    <h3 class="sub" style="margin-top:14px">📥 Importar en este dispositivo</h3>
+    <label>Desde archivo de respaldo</label>
+    <input type="file" accept=".json,application/json" onchange="importFile(this)">
+    <label>o pegá acá el texto copiado</label>
+    <textarea id="f_paste" placeholder='{"demo":false,...}'></textarea>
+    <div style="margin-top:8px"><button class="btn sm sec" onclick="importPasted()">Importar texto pegado</button></div>
+    <div class="actions"><button class="btn sec" onclick="closeModal()">Cerrar</button></div>`);
+}
+
+/* ===================== HISTORIAL DE MESES ===================== */
+function archiveMonthIfNeeded(){
+  if(!S.income.month||S.income.month===thisMonth())return;
+  const m=S.income.month;
+  if(!S.history.some(h=>h.month===m)){
+    const spent=S.expenses.filter(e=>e.date.slice(0,7)===m).reduce((s,e)=>{const w=walletById(e.walletId);return s+toARS(e.amount,w?w.currency:'ARS');},0);
+    const debtsPaid=S.debts.filter(d=>d.paid).reduce((s,d)=>s+d.amount,0);
+    const tot=k=>S.wallets.filter(w=>w.kind===k).reduce((s,w)=>s+toARS(w.balance,w.currency),0);
+    const net=tot('diario')+tot('ahorro')+tot('inversion')+S.goals.reduce((s,g)=>s+toARS(g.saved,g.currency),0);
+    S.history.push({month:m,income:S.income.amount,spent,debtsPaid,net});
+  }
+  S.income.month=thisMonth();
+  S.debts.forEach(d=>d.paid=false);
+  save();
+  setTimeout(()=>toast('📅 ¡Nuevo mes! Archivé el resumen del anterior y tus deudas fijas vuelven a estar pendientes.'),800);
+}
+const MONTH_NAMES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function monthLabel(m){const[y,mm]=m.split('-');return MONTH_NAMES[+mm-1]+' '+y;}
+function renderHistory(){
+  const el=document.getElementById('historyList');
+  el.innerHTML=S.history.length?[...S.history].sort((a,b)=>b.month.localeCompare(a.month)).map(h=>{
+    const bal=h.income-h.spent-h.debtsPaid;
+    return `<div class="item"><div class="info"><div class="t">📅 ${monthLabel(h.month)}</div>
+      <div class="s">Ingreso ${fmt(h.income)} · Gastos ${fmt(h.spent)} · Deudas pagadas ${fmt(h.debtsPaid)}</div></div>
+      <div style="text-align:right"><div class="${bal>=0?'pos':'neg'}" style="font-weight:700">${bal>=0?'+':''}${fmt(bal)}</div>
+      <div class="s">Patrimonio: ${fmt(h.net)}</div></div></div>`;
+  }).join('')
+  :'<div class="empty">Acá se guardará el resumen de cada mes. Cuando cambie el mes, se archiva solo: ingreso, gastos y patrimonio, y tus deudas fijas se reinician como pendientes.</div>';
+}
 
 /* ===================== TABS / MODAL ===================== */
 function showTab(name){
@@ -528,7 +731,7 @@ function checkAchievement(id,cond){
 }
 
 /* ===================== RENDER ===================== */
-function renderAll(){renderHeader();renderResumen();renderWallets();renderExpenses();renderGarden();renderBadges();
+function renderAll(){renderHeader();renderResumen();renderWallets();renderExpenses();renderGarden();renderBadges();renderHistory();
   document.getElementById('demoNote').style.display=S.demo?'flex':'none';
   document.getElementById('fxInput').value=S.fx;
 }
@@ -625,7 +828,22 @@ function renderBadges(){
   document.getElementById('badgeGrid').innerHTML=BADGES.map(b=>`
     <div class="badge ${S.achievements.includes(b.id)?'':'locked'}"><div class="bi">${b.icon}</div><b>${b.name}</b><span class="muted">${b.desc}</span></div>`).join('');
 }
+
+/* ===================== INICIO ===================== */
+archiveMonthIfNeeded();
 renderAll();
-</script></script>
+fetchDollar(false);
+setSyncDot(syncOn()?'☁️…':'☁️',syncOn()?'Sincronizando...':'Sin sincronizar — activalo en ⚙️');
+syncPull();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncPull();});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{
+  e.preventDefault();
+  const f=e.dataTransfer.files[0];
+  if(f&&(f.name.endsWith('.json')||f.type==='application/json')){
+    const r=new FileReader();r.onload=()=>applyImport(r.result);r.readAsText(f);
+  }
+});
+</script>
 </body>
 </html>
