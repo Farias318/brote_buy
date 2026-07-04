@@ -132,6 +132,9 @@
 <style id="theme-v4">
   /* ============ TEMA OSCURO RENOVADO ============ */
   :root{
+    --sbw:225px; --railw:280px;
+  }
+  :root{
     --bg:#0a100e; --bg2:#0f1a15; --card:#131c18; --card2:#1b2721;
     --border:#26382e; --text:#eef4f0; --muted:#8fa79a;
     --green:#34d399; --green2:#10b981; --lime:#a3e635;
@@ -176,22 +179,29 @@
   #tabCards .wallet.mini{margin-bottom:0}
   .filter-note{font-size:.78rem;color:var(--gold);margin-bottom:8px}
   @media(min-width:1250px){
-    #cardsRail{display:block;position:fixed;right:0;top:0;bottom:0;width:280px;padding:24px 18px;overflow-y:auto;border-left:1px solid var(--border);background:linear-gradient(180deg,#0f2019,#0a1410);z-index:55}
+    #cardsRail{display:block;position:fixed;right:0;top:0;bottom:0;width:var(--railw);padding:24px 18px;overflow-y:auto;border-left:1px solid var(--border);background:linear-gradient(180deg,#0f2019,#0a1410);z-index:55}
     #cardsRail h3{font-size:1rem;margin-bottom:6px}
     #cardsRail .railhint{font-size:.72rem;color:var(--muted);margin-bottom:14px}
-    .wrap{margin-right:280px}
+    .wrap{margin-right:var(--railw)}
   }
+
+  /* Manijas para redimensionar columnas (solo compu) */
+  .rz{display:none;position:fixed;top:0;bottom:0;width:8px;cursor:col-resize;z-index:80;background:transparent;transition:background .15s}
+  .rz:hover,.rz.dragging{background:rgba(52,211,153,.35)}
+  @media(min-width:900px){#rzL{display:block;left:calc(var(--sbw) - 4px)}}
+  @media(min-width:1250px){#rzR{display:block;right:calc(var(--railw) - 4px)}}
+  body.resizing{user-select:none;cursor:col-resize}
 
   /* Sidebar (solo compu) */
   #sidebar{display:none}
   @media(min-width:900px){
-    #sidebar{display:flex;flex-direction:column;gap:4px;position:fixed;top:0;bottom:0;left:0;width:225px;background:linear-gradient(180deg,#0f2019,#0a1410);border-right:1px solid var(--border);padding:24px 14px;z-index:60}
+    #sidebar{display:flex;flex-direction:column;gap:4px;position:fixed;top:0;bottom:0;left:0;width:var(--sbw);background:linear-gradient(180deg,#0f2019,#0a1410);border-right:1px solid var(--border);padding:24px 14px;z-index:60;overflow:hidden}
     .side-logo{font-size:1.45rem;font-weight:800;padding:0 10px;margin-bottom:20px;letter-spacing:-.5px}
     .side-link{display:flex;align-items:center;gap:11px;width:100%;padding:12px 14px;border-radius:12px;color:var(--muted);background:none;border:none;font-family:inherit;font-size:.95rem;cursor:pointer;text-align:left;transition:.15s}
     .side-link:hover{color:var(--text);background:rgba(255,255,255,.04)}
     .side-link.active{background:rgba(52,211,153,.13);color:var(--lime);font-weight:700}
     .side-bottom{margin-top:auto;border-top:1px solid var(--border);padding-top:10px}
-    .wrap{margin-left:225px;max-width:1040px;padding:24px 28px}
+    .wrap{margin-left:var(--sbw);max-width:none;padding:24px 28px}
     nav{display:none}
     body{padding-bottom:24px}
     .logo{display:none}
@@ -220,6 +230,8 @@
   </div>
   <div id="railCards"></div>
 </aside>
+<div class="rz" id="rzL" title="Arrastrá para achicar/agrandar (doble clic: restaurar)"></div>
+<div class="rz" id="rzR" title="Arrastrá para achicar/agrandar (doble clic: restaurar)"></div>
 <div class="wrap">
   <header>
     <div class="logo">🌱 <span>Brote</span></div>
@@ -999,6 +1011,36 @@ fetchDollar(false);
 setSyncDot(syncOn()?'☁️…':'☁️',syncOn()?'Sincronizando...':'Sin sincronizar — activalo en ⚙️');
 syncPull();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncPull();});
+/* Columnas redimensionables (solo compu) */
+const UIKEY='brote_ui';
+let UI=JSON.parse(localStorage.getItem(UIKEY)||'{}');
+function applyUI(){
+  document.documentElement.style.setProperty('--sbw',(UI.sbw||225)+'px');
+  document.documentElement.style.setProperty('--railw',(UI.railw||280)+'px');
+}
+function saveUI(){localStorage.setItem(UIKEY,JSON.stringify(UI));}
+applyUI();
+function setupResizer(handle,onMove,onReset){
+  const el=document.getElementById(handle);if(!el)return;
+  el.addEventListener('pointerdown',e=>{
+    e.preventDefault();el.setPointerCapture(e.pointerId);
+    el.classList.add('dragging');document.body.classList.add('resizing');
+    const move=ev=>onMove(ev.clientX);
+    const up=()=>{el.classList.remove('dragging');document.body.classList.remove('resizing');
+      el.removeEventListener('pointermove',move);el.removeEventListener('pointerup',up);saveUI();};
+    el.addEventListener('pointermove',move);
+    el.addEventListener('pointerup',up);
+  });
+  el.addEventListener('dblclick',()=>{onReset();saveUI();});
+}
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+setupResizer('rzL',
+  x=>{UI.sbw=clamp(Math.round(x),150,340);applyUI();},
+  ()=>{UI.sbw=225;applyUI();});
+setupResizer('rzR',
+  x=>{UI.railw=clamp(Math.round(window.innerWidth-x),200,420);applyUI();},
+  ()=>{UI.railw=280;applyUI();});
+
 document.addEventListener('dragover',e=>e.preventDefault());
 document.addEventListener('drop',e=>{
   e.preventDefault();
