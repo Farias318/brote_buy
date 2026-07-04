@@ -166,6 +166,22 @@
   .chart-legend{display:flex;gap:18px;margin-top:10px;font-size:.75rem;color:var(--muted)}
   .chart-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 
+  /* Tarjetas con ojito (filtro) */
+  .wallet.mini{min-height:auto;padding:14px 16px;margin-bottom:12px;cursor:pointer;user-select:none;gap:5px}
+  .wallet.mini .bal{font-size:1.15rem;margin-top:2px}
+  .wallet.mini .eye{font-size:1.1rem}
+  .wallet.hiddencard{opacity:.4;filter:grayscale(.75)}
+  #cardsRail{display:none}
+  #tabCards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  #tabCards .wallet.mini{margin-bottom:0}
+  .filter-note{font-size:.78rem;color:var(--gold);margin-bottom:8px}
+  @media(min-width:1250px){
+    #cardsRail{display:block;position:fixed;right:0;top:0;bottom:0;width:280px;padding:24px 18px;overflow-y:auto;border-left:1px solid var(--border);background:linear-gradient(180deg,#0f2019,#0a1410);z-index:55}
+    #cardsRail h3{font-size:1rem;margin-bottom:6px}
+    #cardsRail .railhint{font-size:.72rem;color:var(--muted);margin-bottom:14px}
+    .wrap{margin-right:280px}
+  }
+
   /* Sidebar (solo compu) */
   #sidebar{display:none}
   @media(min-width:900px){
@@ -190,9 +206,19 @@
   <button class="side-link" data-tab="billeteras" onclick="showTab('billeteras')">👛 Billeteras</button>
   <button class="side-link" data-tab="gastos" onclick="showTab('gastos')">🧾 Gastos</button>
   <button class="side-link" data-tab="metas" onclick="showTab('metas')">🌳 Jardín</button>
+  <button class="side-link" data-tab="tarjetas" onclick="showTab('tarjetas')">💳 Tarjetas</button>
   <div class="side-bottom">
     <button class="side-link" onclick="openSettings()">⚙️ Ajustes</button>
   </div>
+</aside>
+<aside id="cardsRail">
+  <h3>💳 Mis tarjetas</h3>
+  <div class="railhint">Tocá una tarjeta (👁️) para filtrar qué gastos y deudas ves en el centro.</div>
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <button class="btn sm" onclick="openExpenseForm()">+ Gasto</button>
+    <button class="btn sm sec" onclick="openTransferForm()">⇄ Transferir</button>
+  </div>
+  <div id="railCards"></div>
 </aside>
 <div class="wrap">
   <header>
@@ -287,6 +313,16 @@
     <div class="card"><h2><span class="left">🧾 Últimos movimientos</span></h2><div id="expenseList"></div></div>
   </div>
 
+  <!-- ============ TAB: TARJETAS ============ -->
+  <div class="tab" id="tab-tarjetas">
+    <div class="topbtns">
+      <button class="btn" onclick="openExpenseForm()">+ Registrar gasto</button>
+      <button class="btn sec" onclick="openTransferForm()">⇄ Transferir</button>
+    </div>
+    <div class="muted" style="margin-bottom:12px">Tocá una tarjeta (👁️) para elegir cuáles ves. Los <b>gastos y deudas del mes</b> se filtran según las tarjetas visibles — el patrimonio y el ingreso siguen siendo globales.</div>
+    <div id="tabCards"></div>
+  </div>
+
   <!-- ============ TAB: METAS ============ -->
   <div class="tab" id="tab-metas">
     <div class="topbtns"><button class="btn" onclick="openGoalForm()">🌰 Plantar nueva meta</button></div>
@@ -301,6 +337,7 @@
   <button data-tab="billeteras" onclick="showTab('billeteras')"><span class="ic">👛</span>Billeteras</button>
   <button data-tab="gastos" onclick="showTab('gastos')"><span class="ic">🧾</span>Gastos</button>
   <button data-tab="metas" onclick="showTab('metas')"><span class="ic">🌳</span>Jardín</button>
+  <button data-tab="tarjetas" onclick="showTab('tarjetas')"><span class="ic">💳</span>Tarjetas</button>
 </nav>
 
 <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
@@ -345,11 +382,12 @@ function sampleData(){
 let S=load();
 if(!S.history)S.history=[];
 if(!S.fxSource)S.fxSource='blue';
+if(!S.hiddenCards)S.hiddenCards=[];
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.wallets)return d;}catch(e){}return sampleData();}
 function save(){S.lastModified=Date.now();localStorage.setItem(KEY,JSON.stringify(S));schedulePush();}
 function resetAll(){
   if(!confirm('¿Borrar todo y empezar de cero con tus datos reales?'))return;
-  S={demo:false,fx:S.fx,fxSource:S.fxSource,xp:0,achievements:[],activityDays:[],history:[],income:{month:thisMonth(),amount:0},monthlyExpenseEstimate:0,wallets:[],debts:[],expenses:[],goals:[]};
+  S={demo:false,fx:S.fx,fxSource:S.fxSource,xp:0,achievements:[],activityDays:[],history:[],hiddenCards:[],income:{month:thisMonth(),amount:0},monthlyExpenseEstimate:0,wallets:[],debts:[],expenses:[],goals:[]};
   save();renderAll();openIncomeForm();
 }
 
@@ -413,7 +451,7 @@ async function syncPull(){
     if(f.truncated){const rr=await fetch(f.raw_url);content=await rr.text();}
     const cloud=JSON.parse(content);
     if((cloud.lastModified||0)>(S.lastModified||0)){
-      S=cloud;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';
+      S=cloud;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';if(!S.hiddenCards)S.hiddenCards=[];
       localStorage.setItem(KEY,JSON.stringify(S));
       renderAll();toast('☁️ Datos actualizados desde la nube');
     }else if((S.lastModified||0)>(cloud.lastModified||0)){pushNow();return;}
@@ -476,7 +514,7 @@ function applyImport(txt){
     const d=JSON.parse(txt);
     if(!d.wallets||!Array.isArray(d.wallets))throw 0;
     if(!confirm('Esto reemplaza TODOS los datos de este dispositivo con los importados. ¿Continuar?'))return;
-    S=d;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';
+    S=d;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';if(!S.hiddenCards)S.hiddenCards=[];
     save();renderAll();closeModal();toast('✅ Datos importados correctamente');
   }catch(e){toast('⚠️ Eso no parece un respaldo válido de Brote');}
 }
@@ -553,6 +591,40 @@ function renderHistory(){
       <div class="s">Patrimonio: ${fmt(h.net)}</div></div></div>`;
   }).join('')
   :'<div class="empty">Acá se guardará el resumen de cada mes. Cuando cambie el mes, se archiva solo: ingreso, gastos y patrimonio, y tus deudas fijas se reinician como pendientes.</div>';
+}
+
+/* ===================== FILTRO POR TARJETA ===================== */
+function isVisible(id){return !(S.hiddenCards||[]).includes(id);}
+function filterOn(){return S.hiddenCards.length>0&&S.wallets.some(w=>isVisible(w.id));}
+function toggleEye(id){
+  const i=S.hiddenCards.indexOf(id);
+  if(i>=0){S.hiddenCards.splice(i,1);}
+  else{
+    if(S.wallets.filter(w=>isVisible(w.id)).length<=1)return toast('⚠️ Dejá al menos una tarjeta visible');
+    S.hiddenCards.push(id);
+  }
+  save();renderAll();
+}
+function visibleNames(){
+  const v=S.wallets.filter(w=>isVisible(w.id));
+  return v.length===S.wallets.length?'todas las tarjetas':v.map(w=>w.icon+' '+w.name).join(' · ');
+}
+function spentFor(w){
+  return S.expenses.filter(e=>e.walletId===w.id&&e.date.slice(0,7)===thisMonth()).reduce((s,e)=>s+e.amount,0);
+}
+function filterLabel(){return filterOn()?`<div class="filter-note">👁️ Mostrando: ${visibleNames()}</div>`:'';}
+function renderCards(){
+  const html=S.wallets.length?S.wallets.map(w=>{
+    const vis=isVisible(w.id);
+    return `<div class="wallet mini ${w.kind} ${vis?'':'hiddencard'}" onclick="toggleEye('${w.id}')" title="${vis?'Tocá para ocultar sus gastos':'Tocá para volver a mostrarla'}">
+      <div class="row"><span style="font-weight:700">${w.icon} ${w.name}</span><span class="eye">${vis?'👁️':'🙈'}</span></div>
+      <div class="kind">${w.kind==='diario'?'USO DIARIO':w.kind==='ahorro'?'AHORRO':'INVERSIÓN'} · ${w.currency}</div>
+      <div class="bal">${fmt(w.balance,w.currency)}</div>
+      <div style="font-size:.72rem;opacity:.85;position:relative">Gasto del mes: ${fmt(spentFor(w),w.currency)}</div>
+    </div>`;}).join('')
+    :'<div class="empty">Creá una billetera para ver tus tarjetas acá 💳</div>';
+  const rail=document.getElementById('railCards');if(rail)rail.innerHTML=html;
+  const tabc=document.getElementById('tabCards');if(tabc)tabc.innerHTML=html;
 }
 
 /* ===================== GRÁFICO MENSUAL ===================== */
@@ -669,18 +741,21 @@ function openDebtForm(){
   openModal(`<h3>🧾 Nueva deuda / pago fijo</h3>
     <label>Nombre</label><input id="f_name" placeholder="Alquiler, tarjeta...">
     <label>Monto (ARS)</label><input type="number" id="f_amount" placeholder="0">
+    <label>¿Asociada a qué tarjeta/billetera?</label>
+    <select id="f_wallet"><option value="">Sin asociar</option>${walletOptions()}</select>
     <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveDebt()">Agregar</button></div>`);
 }
 function saveDebt(){
   const name=document.getElementById('f_name').value.trim(),a=+document.getElementById('f_amount').value;
   if(!name||!a)return toast('⚠️ Completá nombre y monto');
-  S.debts.push({id:uid(),name,amount:a,paid:false});registerActivity();save();renderAll();closeModal();
+  S.debts.push({id:uid(),name,amount:a,paid:false,walletId:document.getElementById('f_wallet').value||null});
+  registerActivity();save();renderAll();closeModal();
 }
 function payDebt(id){
   const d=S.debts.find(x=>x.id===id);
   openModal(`<h3>💸 Pagar: ${d.name}</h3>
     <p class="muted">Monto: <b>${fmt(d.amount)}</b></p>
-    <label>¿Desde qué billetera?</label><select id="f_wallet">${walletOptions()}</select>
+    <label>¿Desde qué billetera?</label><select id="f_wallet">${walletOptions(d.walletId)}</select>
     <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="confirmPayDebt('${id}')">Pagar</button></div>`);
 }
 function confirmPayDebt(id){
@@ -815,7 +890,7 @@ function checkAchievement(id,cond){
 }
 
 /* ===================== RENDER ===================== */
-function renderAll(){renderHeader();renderResumen();renderWallets();renderExpenses();renderGarden();renderBadges();renderHistory();renderChart();
+function renderAll(){renderHeader();renderResumen();renderWallets();renderExpenses();renderGarden();renderBadges();renderHistory();renderChart();renderCards();
   document.getElementById('demoNote').style.display=S.demo?'flex':'none';
   document.getElementById('fxInput').value=S.fx;
 }
@@ -844,14 +919,17 @@ function renderResumen(){
   document.getElementById('totAhorro').textContent=fmt(tot('ahorro'));
   document.getElementById('totInversion').textContent=fmt(tot('inversion'));
   document.getElementById('totMetas').textContent=fmt(goalsTot);
-  // deudas
-  document.getElementById('debtList').innerHTML=S.debts.length?S.debts.map(d=>`
+  // deudas (filtradas por tarjetas visibles)
+  const debtsShown=filterOn()?S.debts.filter(d=>d.walletId&&isVisible(d.walletId)):S.debts;
+  document.getElementById('debtList').innerHTML=filterLabel()+(debtsShown.length?debtsShown.map(d=>{
+    const dw=d.walletId?walletById(d.walletId):null;
+    return `
     <div class="item ${d.paid?'paid':''}">
-      <div class="info"><div class="t">${d.name}</div><div class="s">${fmt(d.amount)}</div></div>
+      <div class="info"><div class="t">${d.name}</div><div class="s">${fmt(d.amount)}${dw?' · '+dw.icon+' '+dw.name:''}</div></div>
       ${d.paid?'<span class="pill" style="color:var(--green);border-color:var(--green)">✓ Pagada</span>'
         :`<button class="btn sm" onclick="payDebt('${d.id}')">Pagar</button>`}
       <button class="btn sm sec" onclick="deleteDebt('${d.id}')">🗑</button>
-    </div>`).join(''):'<div class="empty">Sin deudas cargadas. ¡Ese es el sueño! 🎉</div>';
+    </div>`;}).join(''):(filterOn()?'<div class="empty">Sin deudas asociadas a las tarjetas visibles.</div>':'<div class="empty">Sin deudas cargadas. ¡Ese es el sueño! 🎉</div>'));
   // libertad financiera (regla del 4%)
   const monthly=S.monthlyExpenseEstimate||spent+debtPend||1;
   const target=monthly*300; // gasto anual / 0.04
@@ -877,21 +955,22 @@ function renderWallets(){
     </div>`).join(''):'<div class="empty">Creá tu primera billetera para empezar 👛</div>';
 }
 function renderExpenses(){
-  const monthExp=S.expenses.filter(e=>e.date.slice(0,7)===thisMonth());
+  const monthExp=S.expenses.filter(e=>e.date.slice(0,7)===thisMonth()&&(!filterOn()||isVisible(e.walletId)));
   const byCat={};let totCat=0;
   monthExp.forEach(e=>{const w=walletById(e.walletId);const v=toARS(e.amount,w?w.currency:'ARS');byCat[e.category]=(byCat[e.category]||0)+v;totCat+=v;});
   const cats=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('catBars').innerHTML=cats.length?cats.map(([c,v])=>`
+  document.getElementById('catBars').innerHTML=filterLabel()+(cats.length?cats.map(([c,v])=>`
     <div class="cat"><div class="row"><span>${c}</span><b>${fmt(v)} <span class="muted">(${(v/totCat*100).toFixed(0)}%)</span></b></div>
     <div class="pbar"><div style="width:${v/totCat*100}%"></div></div></div>`).join('')
-    :'<div class="empty">Todavía no registraste gastos este mes.</div>';
-  document.getElementById('expenseList').innerHTML=S.expenses.length?S.expenses.slice(0,30).map(e=>{
+    :'<div class="empty">Todavía no registraste gastos este mes.</div>');
+  const expShown=S.expenses.filter(e=>!filterOn()||isVisible(e.walletId));
+  document.getElementById('expenseList').innerHTML=filterLabel()+(expShown.length?expShown.slice(0,30).map(e=>{
     const w=walletById(e.walletId);
     return `<div class="item"><div class="info"><div class="t">${e.category}${e.note?' · '+e.note:''}</div>
       <div class="s">${e.date} · ${w?w.icon+' '+w.name:''}</div></div>
       <b class="neg">-${fmt(e.amount,w?w.currency:'ARS')}</b>
       <button class="btn sm sec" onclick="deleteExpense('${e.id}')">🗑</button></div>`;}).join('')
-    :'<div class="empty">Sin movimientos aún.</div>';
+    :'<div class="empty">Sin movimientos aún.</div>');
 }
 function renderGarden(){
   document.getElementById('gardenGrid').innerHTML=S.goals.length?S.goals.map(g=>{
