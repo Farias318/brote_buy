@@ -462,11 +462,23 @@ let S=load();
 if(!S.history)S.history=[];
 if(!S.fxSource)S.fxSource='blue';
 if(!S.hiddenCards)S.hiddenCards=[];
+if(!S.kinds)S.kinds=[];
+
+/* Tipos de billetera (base + personalizados) */
+const BASE_KINDS=[
+  {id:'diario',name:'Uso diario',icon:'💳'},
+  {id:'ahorro',name:'Ahorro',icon:'🐖'},
+  {id:'inversion',name:'Inversión',icon:'📈'}
+];
+function kindList(){return [...BASE_KINDS,...(S.kinds||[])];}
+function kindOf(id){return kindList().find(k=>k.id===id)||BASE_KINDS[0];}
+function groupOf(id){const k=kindOf(id);return k.group||k.id;}
+function kindLabel(id){const k=kindOf(id);return (k.icon?k.icon+' ':'')+k.name;}
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.wallets)return d;}catch(e){}return sampleData();}
 function save(){S.lastModified=Date.now();localStorage.setItem(KEY,JSON.stringify(S));schedulePush();}
 function resetAll(){
   if(!confirm('¿Borrar todo y empezar de cero con tus datos reales?'))return;
-  S={demo:false,fx:S.fx,fxSource:S.fxSource,xp:0,achievements:[],activityDays:[],history:[],hiddenCards:[],income:{month:thisMonth(),amount:0},monthlyExpenseEstimate:0,wallets:[],debts:[],expenses:[],goals:[]};
+  S={demo:false,fx:S.fx,fxSource:S.fxSource,xp:0,achievements:[],activityDays:[],history:[],hiddenCards:[],kinds:S.kinds||[],income:{month:thisMonth(),amount:0},monthlyExpenseEstimate:0,wallets:[],debts:[],expenses:[],goals:[]};
   save();renderAll();openIncomeForm();
 }
 
@@ -559,7 +571,7 @@ async function syncPull(){
     if(f.truncated){const rr=await fetch(f.raw_url);content=await rr.text();}
     const cloud=JSON.parse(content);
     if((cloud.lastModified||0)>(S.lastModified||0)){
-      S=cloud;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';if(!S.hiddenCards)S.hiddenCards=[];
+      S=cloud;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';if(!S.hiddenCards)S.hiddenCards=[];if(!S.kinds)S.kinds=[];
       localStorage.setItem(KEY,JSON.stringify(S));
       renderAll();toast('☁️ Datos actualizados desde la nube');
     }else if((S.lastModified||0)>(cloud.lastModified||0)){pushNow();return;}
@@ -622,7 +634,7 @@ function applyImport(txt){
     const d=JSON.parse(txt);
     if(!d.wallets||!Array.isArray(d.wallets))throw 0;
     if(!confirm('Esto reemplaza TODOS los datos de este dispositivo con los importados. ¿Continuar?'))return;
-    S=d;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';if(!S.hiddenCards)S.hiddenCards=[];
+    S=d;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';if(!S.hiddenCards)S.hiddenCards=[];if(!S.kinds)S.kinds=[];
     save();renderAll();closeModal();toast('✅ Datos importados correctamente');
   }catch(e){toast('⚠️ Eso no parece un respaldo válido de Brote');}
 }
@@ -678,7 +690,7 @@ function archiveMonthIfNeeded(){
   if(!S.history.some(h=>h.month===m)){
     const spent=S.expenses.filter(e=>e.date.slice(0,7)===m).reduce((s,e)=>{const w=walletById(e.walletId);return s+toARS(e.amount,w?w.currency:'ARS');},0);
     const debtsPaid=S.debts.filter(d=>d.paid).reduce((s,d)=>s+d.amount,0);
-    const tot=k=>S.wallets.filter(w=>w.kind===k).reduce((s,w)=>s+toARS(w.balance,w.currency),0);
+    const tot=k=>S.wallets.filter(w=>groupOf(w.kind)===k).reduce((s,w)=>s+toARS(w.balance,w.currency),0);
     const net=tot('diario')+tot('ahorro')+tot('inversion')+S.goals.reduce((s,g)=>s+toARS(g.saved,g.currency),0);
     S.history.push({month:m,income:S.income.amount,spent,debtsPaid,net});
   }
@@ -724,9 +736,9 @@ function filterLabel(){return filterOn()?`<div class="filter-note">👁️ Mostr
 function renderCards(){
   const html=S.wallets.length?S.wallets.map(w=>{
     const vis=isVisible(w.id);
-    return `<div class="wallet mini ${w.kind} ${vis?'':'hiddencard'}" onclick="toggleEye('${w.id}')" title="${vis?'Tocá para ocultar sus gastos':'Tocá para volver a mostrarla'}">
+    return `<div class="wallet mini ${groupOf(w.kind)} ${vis?'':'hiddencard'}" onclick="toggleEye('${w.id}')" title="${vis?'Tocá para ocultar sus gastos':'Tocá para volver a mostrarla'}">
       <div class="row"><span style="font-weight:700">${w.icon} ${w.name}</span><span class="eye">${vis?ICO.eye:ICO.eyeoff}</span></div>
-      <div class="kind">${w.kind==='diario'?'USO DIARIO':w.kind==='ahorro'?'AHORRO':'INVERSIÓN'} · ${w.currency}</div>
+      <div class="kind">${kindOf(w.kind).name.toUpperCase()} · ${w.currency}</div>
       <div class="bal">${fmt(w.balance,w.currency)}</div>
       <div style="font-size:.72rem;opacity:.85;position:relative">Gasto del mes: ${fmt(spentFor(w),w.currency)}</div>
     </div>`;}).join('')
@@ -781,11 +793,20 @@ function openWalletForm(id){
     <label>Nombre</label><input id="f_name" value="${w?w.name:''}" placeholder="Mercado Pago, Banco, Efectivo...">
     <label>Ícono (emoji)</label><input id="f_icon" value="${w?w.icon:'💳'}">
     <label>Moneda</label><select id="f_cur"><option ${w&&w.currency==='ARS'?'selected':''}>ARS</option><option ${w&&w.currency==='USD'?'selected':''}>USD</option></select>
-    <label>Tipo</label><select id="f_kind">
-      <option value="diario" ${w&&w.kind==='diario'?'selected':''}>💳 Uso diario</option>
-      <option value="ahorro" ${w&&w.kind==='ahorro'?'selected':''}>🐖 Ahorro</option>
-      <option value="inversion" ${w&&w.kind==='inversion'?'selected':''}>📈 Inversión</option>
+    <label>Tipo</label><select id="f_kind" onchange="document.getElementById('newKindBox').style.display=this.value==='__new'?'block':'none'">
+      ${kindList().map(k=>`<option value="${k.id}" ${w&&w.kind===k.id?'selected':''}>${(k.icon?k.icon+' ':'')+k.name}</option>`).join('')}
+      <option value="__new">➕ Crear nuevo tipo...</option>
     </select>
+    <div id="newKindBox" style="display:none;border:1px dashed var(--border);border-radius:12px;padding:10px 12px;margin-top:8px">
+      <label style="margin-top:0">Nombre del nuevo tipo</label><input id="f_kname" placeholder="Cuenta bancaria">
+      <label>Ícono (emoji)</label><input id="f_kicon" value="🏦">
+      <label>¿Cómo cuenta en tu patrimonio?</label>
+      <select id="f_kgroup">
+        <option value="diario">💳 Como uso diario</option>
+        <option value="ahorro">🐖 Como ahorro</option>
+        <option value="inversion">📈 Como inversión (suma a libertad financiera)</option>
+      </select>
+    </div>
     <label>Saldo actual</label><input type="number" id="f_bal" value="${w?w.balance:''}" placeholder="0">
     <div class="actions">
       ${w?`<button class="btn danger sm" onclick="deleteWallet('${w.id}')">Eliminar</button>`:''}
@@ -794,7 +815,15 @@ function openWalletForm(id){
 }
 function saveWallet(id){
   const name=document.getElementById('f_name').value.trim();if(!name)return toast('⚠️ Poné un nombre');
-  const data={name,icon:document.getElementById('f_icon').value||'💳',currency:document.getElementById('f_cur').value,kind:document.getElementById('f_kind').value,balance:+document.getElementById('f_bal').value||0};
+  let kind=document.getElementById('f_kind').value;
+  if(kind==='__new'){
+    const kn=document.getElementById('f_kname').value.trim();
+    if(!kn)return toast('⚠️ Poné el nombre del nuevo tipo');
+    const nk={id:uid(),name:kn,icon:document.getElementById('f_kicon').value||'🏦',group:document.getElementById('f_kgroup').value};
+    S.kinds.push(nk);kind=nk.id;
+    toast('✨ Tipo "'+kn+'" creado');
+  }
+  const data={name,icon:document.getElementById('f_icon').value||'💳',currency:document.getElementById('f_cur').value,kind,balance:+document.getElementById('f_bal').value||0};
   if(id){Object.assign(walletById(id),data);}else{S.wallets.push({id:uid(),...data});addXp(15,'Billetera creada');}
   registerActivity();save();renderAll();closeModal();
 }
@@ -817,7 +846,7 @@ function doTransfer(){
   let recv=a;
   if(from.currency!==to.currency)recv=from.currency==='USD'?a*S.fx:a/S.fx;
   from.balance-=a;to.balance+=recv;
-  if(to.kind!=='diario')addXp(10,'+10 XP por mover plata a '+(to.kind==='ahorro'?'ahorro':'inversión')+' 💪');
+  if(groupOf(to.kind)!=='diario')addXp(10,'+10 XP por mover plata a '+(groupOf(to.kind)==='ahorro'?'ahorro':'inversión')+' 💪');
   checkAchievement('usd_saver', to.currency==='USD');
   registerActivity();save();renderAll();closeModal();
   toast(`⇄ ${fmt(a,from.currency)} → ${to.icon} ${to.name}`);
@@ -1023,7 +1052,7 @@ function renderResumen(){
   const ds=document.getElementById('debtSummary');
   if(ds){ds.style.display=pendN?'inline-block':'none';ds.textContent=pendN+(pendN===1?' pendiente':' pendientes')+' · '+fmt(debtPend);}
   // patrimonio
-  const tot=k=>S.wallets.filter(w=>w.kind===k).reduce((s,w)=>s+toARS(w.balance,w.currency),0);
+  const tot=k=>S.wallets.filter(w=>groupOf(w.kind)===k).reduce((s,w)=>s+toARS(w.balance,w.currency),0);
   const goalsTot=S.goals.reduce((s,g)=>s+toARS(g.saved,g.currency),0);
   const net=tot('diario')+tot('ahorro')+tot('inversion')+goalsTot;
   setMoney('netWorth',net);
@@ -1061,9 +1090,9 @@ function editMonthly(){
 }
 function renderWallets(){
   document.getElementById('walletGrid').innerHTML=S.wallets.length?S.wallets.map(w=>`
-    <div class="wallet ${w.kind}" onclick="openWalletForm('${w.id}')" style="cursor:pointer">
+    <div class="wallet ${groupOf(w.kind)}" onclick="openWalletForm('${w.id}')" style="cursor:pointer">
       <div class="row"><span style="font-size:1.4rem">${w.icon}</span><span class="pill ${w.currency.toLowerCase()}">${w.currency}</span></div>
-      <div class="kind">${w.kind==='diario'?'💳 Uso diario':w.kind==='ahorro'?'🐖 Ahorro':'📈 Inversión'}</div>
+      <div class="kind">${kindLabel(w.kind)}</div>
       <div style="font-weight:700;margin-top:2px">${w.name}</div>
       <div class="bal">${fmt(w.balance,w.currency)}</div>
     </div>`).join(''):'<div class="empty">Creá tu primera billetera para empezar 👛</div>';
