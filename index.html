@@ -276,6 +276,10 @@
   .badge:hover{transform:translateY(-2px) scale(1.03)}
   .side-link:active{transform:scale(.97)}
   @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+  /* Indicador de versión */
+  #appVersion{position:fixed;right:10px;bottom:8px;font-size:.65rem;color:var(--muted);opacity:.65;z-index:45;font-family:'JetBrains Mono',monospace;pointer-events:none}
+  @media(max-width:899px){#appVersion{bottom:calc(78px + env(safe-area-inset-bottom))}}
 </style>
 </head>
 <body>
@@ -425,6 +429,7 @@
   <div class="modal" id="modalContent"></div>
 </div>
 <div id="toast"></div>
+<div id="appVersion">v7.0 · 04-07-2026</div>
 
 <script>
 /* ===================== ESTADO ===================== */
