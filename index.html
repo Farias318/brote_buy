@@ -1385,6 +1385,28 @@
       transform: translateY(-3px)
     }
 
+    /* Drag & drop de billeteras */
+    .wallets-grid .wallet {
+      transition: transform .25s ease, opacity .25s ease, box-shadow .25s ease
+    }
+
+    .wallet.draggingw {
+      opacity: .35;
+      transform: scale(.96) rotate(-1.5deg)
+    }
+
+    .wallet.dropover {
+      transform: translateY(-4px);
+      box-shadow: 0 0 0 2px var(--green), 0 14px 30px rgba(0, 0, 0, .4)
+    }
+
+    .eyebtn {
+      padding: 4px 6px;
+      background: rgba(0, 0, 0, .25);
+      border-color: rgba(255, 255, 255, .2);
+      color: #fff
+    }
+
     .badge {
       transition: transform .2s
     }
@@ -1457,10 +1479,6 @@
     <button class="side-link" data-tab="metas" onclick="showTab('metas')"><svg class="ico" viewBox="0 0 24 24">
         <path d="M12 21v-8M12 13C12 9 9 7 5 7c0 4 3 6 7 6zM12 13c0-4 3-6 7-6 0 4-3 6-7 6z" />
       </svg> Jardín</button>
-    <button class="side-link" data-tab="tarjetas" onclick="showTab('tarjetas')"><svg class="ico" viewBox="0 0 24 24">
-        <rect x="3" y="6" width="18" height="13" rx="2" />
-        <path d="M3 10.5h18" />
-      </svg> Tarjetas</button>
     <div class="side-bottom">
       <button class="side-link" onclick="openSettings()"><svg class="ico" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="3" />
@@ -1526,6 +1544,8 @@
             <span class="muted">Deudas pendientes</span><b class="neg" id="debtPending">$0</b>
           </div>
           <div class="row"><span class="muted">Gastado en el mes</span><b id="spentMonth">$0</b></div>
+        <div class="row"><span class="muted">Movido a ahorro/metas</span><b class="pos" id="movedVal">$0</b></div>
+        <div class="filter-note" id="resumenFilterNote" style="margin-top:6px"></div>
           <div class="row" style="margin-top:6px;padding-top:8px;border-top:1px solid var(--border)">
             <span>Disponible estimado</span><b class="gold" id="freeVal">$0</b>
           </div>
@@ -1601,12 +1621,14 @@
       </div>
     </div>
 
-    <!-- ============ TAB: BILLETERAS ============ -->
+    <!-- ============ TAB: BILLETERAS (unificada con tarjetas) ============ -->
     <div class="tab" id="tab-billeteras">
       <div class="topbtns">
         <button class="btn" onclick="openWalletForm()">+ Nueva billetera</button>
+        <button class="btn sec" onclick="openExpenseForm()">+ Gasto</button>
         <button class="btn sec" onclick="openTransferForm()">⇄ Transferir</button>
       </div>
+      <div class="muted" style="margin-bottom:12px">Tocá la tarjeta para <b>editarla</b>, el ojito para <b>filtrar</b> qué gastos, deudas y movimientos ves en Resumen y Gastos, y <b>arrastrala</b> para reordenar.</div>
       <div class="wallets-grid" id="walletGrid"></div>
     </div>
 
@@ -1636,18 +1658,6 @@
             </svg> Últimos movimientos</span></h2>
         <div id="expenseList"></div>
       </div>
-    </div>
-
-    <!-- ============ TAB: TARJETAS ============ -->
-    <div class="tab" id="tab-tarjetas">
-      <div class="topbtns">
-        <button class="btn" onclick="openExpenseForm()">+ Registrar gasto</button>
-        <button class="btn sec" onclick="openTransferForm()">⇄ Transferir</button>
-      </div>
-      <div class="muted" style="margin-bottom:12px">Tocá una tarjeta (👁️) para elegir cuáles ves. Los <b>gastos y
-          deudas del mes</b> se filtran según las tarjetas visibles — el patrimonio y el ingreso siguen siendo globales.
-      </div>
-      <div id="tabCards"></div>
     </div>
 
     <!-- ============ TAB: METAS ============ -->
@@ -1680,17 +1690,13 @@
     <button data-tab="metas" onclick="showTab('metas')"><svg class="ico" viewBox="0 0 24 24">
         <path d="M12 21v-8M12 13C12 9 9 7 5 7c0 4 3 6 7 6zM12 13c0-4 3-6 7-6 0 4-3 6-7 6z" />
       </svg>Jardín</button>
-    <button data-tab="tarjetas" onclick="showTab('tarjetas')"><svg class="ico" viewBox="0 0 24 24">
-        <rect x="3" y="6" width="18" height="13" rx="2" />
-        <path d="M3 10.5h18" />
-      </svg>Tarjetas</button>
   </nav>
 
   <div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
     <div class="modal" id="modalContent"></div>
   </div>
   <div id="toast"></div>
-  <div id="appVersion">v8.1 · 04-07-2026</div>
+  <div id="appVersion">v9.0 · 04-07-2026</div>
 
   <script>
     /* ===================== ESTADO ===================== */
@@ -1729,14 +1735,14 @@
     /* Estado por defecto + normalización (evita estados corruptos que rompan el render) */
     function defaultState() {
       return {
-        demo: false, fx: 1500, fxSource: 'blue', xp: 0, achievements: [], activityDays: [], history: [], hiddenCards: [], kinds: [], credits: [],
+        demo: false, fx: 1500, fxSource: 'blue', xp: 0, achievements: [], activityDays: [], history: [], hiddenCards: [], kinds: [], credits: [], moves: [],
         income: { month: thisMonth(), amount: 0 }, monthlyExpenseEstimate: 0, wallets: [], debts: [], expenses: [], goals: [], lastModified: 0
       };
     }
     function normalizeState(d) {
       const base = defaultState();
       const out = { ...base, ...(d && typeof d === 'object' ? d : {}) };
-      for (const k of ['wallets', 'debts', 'expenses', 'goals', 'history', 'achievements', 'activityDays', 'kinds', 'hiddenCards', 'credits'])
+      for (const k of ['wallets', 'debts', 'expenses', 'goals', 'history', 'achievements', 'activityDays', 'kinds', 'hiddenCards', 'credits', 'moves'])
         if (!Array.isArray(out[k])) out[k] = [];
       if (!out.income || typeof out.income !== 'object' || typeof out.income.amount !== 'number') out.income = base.income;
       if (!(+out.fx > 0)) out.fx = base.fx;
@@ -1759,7 +1765,7 @@
     function save() { S.lastModified = Date.now(); localStorage.setItem(KEY, JSON.stringify(S)); schedulePush(); }
     function resetAll() {
       if (!confirm('¿Borrar todo y empezar de cero con tus datos reales?')) return;
-      S = { demo: false, fx: S.fx, fxSource: S.fxSource, xp: 0, achievements: [], activityDays: [], history: [], hiddenCards: [], kinds: S.kinds || [], credits: [], income: { month: thisMonth(), amount: 0 }, monthlyExpenseEstimate: 0, wallets: [], debts: [], expenses: [], goals: [] };
+      S = { demo: false, fx: S.fx, fxSource: S.fxSource, xp: 0, achievements: [], activityDays: [], history: [], hiddenCards: [], kinds: S.kinds || [], credits: [], moves: [], income: { month: thisMonth(), amount: 0 }, monthlyExpenseEstimate: 0, wallets: [], debts: [], expenses: [], goals: [] };
       save(); renderAll(); openIncomeForm();
     }
 
@@ -2075,7 +2081,7 @@
       for (const r of _stmt.slice(1)) {
         const fecha = parseFecha(r[iF]), monto = parseMonto(r[iM]);
         if (!fecha || !monto) { skip++; continue; }
-        S.expenses.push({ id: uid(), date: fecha, amount: monto, walletId: w.id, category: cat, note: String(r[iD] || '').slice(0, 60) + ' 📥' });
+        S.expenses.push({ id: uid(), date: fecha, amount: monto, walletId: w.id, category: cat, note: String(r[iD] || '').slice(0, 60) + ' 📥', ...(deduct ? {} : { nd: 1 }) });
         total += monto; ok++;
       }
       if (!ok) return toast('⚠️ Ninguna fila válida. Revisá el mapeo de columnas.');
@@ -2150,7 +2156,6 @@
       }).join('')
         : '<div class="empty">Creá una billetera para ver tus tarjetas acá 💳</div>';
       const rail = document.getElementById('railCards'); if (rail) rail.innerHTML = html;
-      const tabc = document.getElementById('tabCards'); if (tabc) tabc.innerHTML = html;
     }
 
     /* ===================== COMPRAS EN CUOTAS (render) ===================== */
@@ -2274,6 +2279,7 @@
       let recv = a;
       if (from.currency !== to.currency) recv = from.currency === 'USD' ? a * S.fx : a / S.fx;
       from.balance -= a; to.balance += recv;
+      S.moves.unshift({ id: uid(), date: today(), type: 'transfer', from: from.id, to: to.id, amount: a, recv });
       if (groupOf(to.kind) !== 'diario') addXp(10, '+10 XP por mover plata a ' + (groupOf(to.kind) === 'ahorro' ? 'ahorro' : 'inversión') + ' 💪');
       checkAchievement('usd_saver', to.currency === 'USD');
       registerActivity(); save(); renderAll(); closeModal();
@@ -2292,43 +2298,67 @@
       });
     }
 
-    function openExpenseForm() {
+    function openExpenseForm(id) {
       if (!S.wallets.length) return toast('⚠️ Primero creá una billetera');
-      openModal(`<h3>🧾 Registrar gasto</h3>
-    <label>Monto total</label><input type="number" id="f_amount" placeholder="0" autofocus>
-    <label>Fecha</label><input type="date" id="f_date" value="${today()}" max="${today()}">
-    <label>Medio de pago</label>
+      const e = id ? S.expenses.find(x => x.id === id) : null;
+      const ew = e ? walletById(e.walletId) : null;
+      openModal(`<h3>${e ? '✎ Editar' : '🧾 Registrar'} gasto</h3>
+    <label>Monto</label><input type="number" id="f_amount" value="${e ? e.amount : ''}" placeholder="0" autofocus>
+    <label>Moneda del monto</label>
+    <select id="f_ecur">
+      <option value="ARS" ${(!ew || ew.currency === 'ARS') ? 'selected' : ''}>ARS (pesos)</option>
+      <option value="USD" ${ew && ew.currency === 'USD' ? 'selected' : ''}>USD (dólares)</option>
+    </select>
+    <p class="muted" style="margin-top:4px">Si difiere de la moneda de la billetera, lo convierto con la cotización actual ($${S.fx}).</p>
+    <label>Fecha</label><input type="date" id="f_date" value="${e ? e.date : today()}" max="${today()}">
+    ${e ? '' : `<label>Medio de pago</label>
     <select id="f_method" onchange="document.getElementById('creditBox').style.display=this.value==='credito'?'block':'none'">
       <option value="debito">💳 Débito / efectivo (descuenta ahora)</option>
       <option value="credito">🧾 Crédito en cuotas (se paga por mes)</option>
-    </select>
-    <label>Billetera / tarjeta</label><select id="f_wallet">${walletOptions()}</select>
-    <div id="creditBox" style="display:none;border:1px dashed var(--border);border-radius:12px;padding:10px 12px;margin-top:8px">
+    </select>`}
+    <label>Billetera / tarjeta</label><select id="f_wallet">${walletOptions(e ? e.walletId : undefined)}</select>
+    ${e ? '' : `<div id="creditBox" style="display:none;border:1px dashed var(--border);border-radius:12px;padding:10px 12px;margin-top:8px">
       <label style="margin-top:0">Cantidad de cuotas</label><input type="number" id="f_cuotas" value="3" min="1" max="36">
       <label>Primer mes de pago</label><input type="month" id="f_firstmonth" value="${nextMonth()}">
       <p class="muted" style="margin-top:6px">No descuenta saldo ahora: cada cuota aparece como pago pendiente en su mes, y al pagarla se registra el gasto real.</p>
-    </div>
-    <label>Categoría</label><select id="f_cat">${CATS.map(c => `<option>${c}</option>`).join('')}</select>
-    <label>Nota (opcional)</label><input id="f_note" placeholder="¿Qué compraste?">
-    <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveExpense()">Registrar</button></div>`);
+    </div>`}
+    <label>Categoría</label><select id="f_cat">${CATS.map(c => `<option ${e && e.category === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
+    <label>Nota (opcional)</label><input id="f_note" value="${e ? esc(e.note || '') : ''}" placeholder="¿Qué compraste?">
+    <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="saveExpense('${id || ''}')">${e ? 'Guardar cambios' : 'Registrar'}</button></div>`);
     }
-    function saveExpense() {
+    function saveExpense(id) {
       const a = +document.getElementById('f_amount').value; if (!a || a <= 0) return toast('⚠️ Monto inválido');
       const w = walletById(document.getElementById('f_wallet').value);
       const date = document.getElementById('f_date').value || today();
-      const method = document.getElementById('f_method').value;
       const cat = document.getElementById('f_cat').value, note = document.getElementById('f_note').value;
+      const ecur = document.getElementById('f_ecur').value;
+      // convertir el monto a la moneda de la billetera si difiere
+      let amt = a;
+      if (ecur !== w.currency) amt = ecur === 'USD' ? a * S.fx : a / S.fx;
+      amt = Math.round(amt * 100) / 100;
+      if (id) {
+        const e = S.expenses.find(x => x.id === id); if (!e) return;
+        if (!e.nd) {
+          const ow = walletById(e.walletId);
+          if (ow) ow.balance += e.amount; // devolver lo anterior
+          w.balance -= amt;               // descontar lo nuevo
+        }
+        Object.assign(e, { date, amount: amt, walletId: w.id, category: cat, note });
+        save(); renderAll(); closeModal(); toast('✎ Gasto actualizado');
+        return;
+      }
+      const method = document.getElementById('f_method').value;
       if (method === 'credito') {
         const n = Math.max(1, Math.min(36, +document.getElementById('f_cuotas').value || 1));
         const fm = document.getElementById('f_firstmonth').value || nextMonth();
-        S.credits.push({ id: uid(), date, desc: note || cat, category: cat, total: a, cuotas: n, cuotaAmount: Math.round(a / n), firstMonth: fm, walletId: w.id, paid: [] });
-        registerActivity(); addXp(5, `🧾 Compra en ${n} cuota${n > 1 ? 's' : ''} de ${fmt(Math.round(a / n), w.currency)} registrada`);
+        S.credits.push({ id: uid(), date, desc: note || cat, category: cat, total: amt, cuotas: n, cuotaAmount: Math.round(amt / n), firstMonth: fm, walletId: w.id, paid: [] });
+        registerActivity(); addXp(5, `🧾 Compra en ${n} cuota${n > 1 ? 's' : ''} de ${fmt(Math.round(amt / n), w.currency)} registrada`);
         save(); renderAll(); closeModal();
         return;
       }
-      if (a > w.balance) return toast('⚠️ Saldo insuficiente');
-      w.balance -= a;
-      S.expenses.unshift({ id: uid(), date, amount: a, walletId: w.id, category: cat, note });
+      if (amt > w.balance) return toast('⚠️ Saldo insuficiente');
+      w.balance -= amt;
+      S.expenses.unshift({ id: uid(), date, amount: amt, walletId: w.id, category: cat, note });
       checkAchievement('first_expense', true);
       registerActivity(); addXp(5, '+5 XP por registrar tu gasto ✍️'); save(); renderAll(); closeModal();
     }
@@ -2364,7 +2394,7 @@
     function deleteExpense(id) {
       const i = S.expenses.findIndex(x => x.id === id); if (i < 0) return;
       const e = S.expenses[i]; const w = walletById(e.walletId);
-      if (w) w.balance += e.amount;
+      if (w && !e.nd) w.balance += e.amount;
       S.expenses.splice(i, 1);
       _undo = { type: 'expense', item: e, index: i };
       save(); renderAll();
@@ -2374,7 +2404,7 @@
       if (!_undo) return;
       if (_undo.type === 'expense') {
         S.expenses.splice(Math.min(_undo.index, S.expenses.length), 0, _undo.item);
-        const w = walletById(_undo.item.walletId); if (w) w.balance -= _undo.item.amount;
+        const w = walletById(_undo.item.walletId); if (w && !_undo.item.nd) w.balance -= _undo.item.amount;
       } else if (_undo.type === 'debt') {
         S.debts.splice(Math.min(_undo.index, S.debts.length), 0, _undo.item);
       }
@@ -2460,6 +2490,7 @@
       if (w.currency !== g.currency) add = w.currency === 'USD' ? a * S.fx : a / S.fx;
       const before = g.saved / g.target;
       w.balance -= a; g.saved += add;
+      S.moves.unshift({ id: uid(), date: today(), type: 'goal', from: w.id, goalId: g.id, label: g.name, amount: a, recv: add });
       const after = g.saved / g.target;
       checkAchievement('first_water', true);
       if (after >= .5) checkAchievement('goal_half', true);
@@ -2561,11 +2592,16 @@
       const cuotasMes = cuotasOf(thisMonth());
       const cuotasPend = cuotasMes.filter(x => !x.paid).reduce((s, x) => s + x.credit.cuotaAmount, 0);
       const debtPend = S.debts.filter(d => !d.paid).reduce((s, d) => s + d.amount, 0) + cuotasPend;
-      const spent = S.expenses.filter(e => e.date.slice(0, 7) === thisMonth()).reduce((s, e) => { const w = walletById(e.walletId); return s + toARS(e.amount, w ? w.currency : 'ARS'); }, 0);
+      const spent = S.expenses.filter(e => e.date.slice(0, 7) === thisMonth() && (!filterOn() || isVisible(e.walletId))).reduce((s, e) => { const w = walletById(e.walletId); return s + toARS(e.amount, w ? w.currency : 'ARS'); }, 0);
+      const moved = (S.moves || []).filter(m => m.date.slice(0, 7) === thisMonth() && (!filterOn() || isVisible(m.from)) && (m.type === 'goal' || (walletById(m.to) && groupOf(walletById(m.to).kind) !== 'diario')))
+        .reduce((s, m) => { const f = walletById(m.from); return s + toARS(m.amount, f ? f.currency : 'ARS'); }, 0);
       setMoney('incomeVal', inc);
       setMoney('debtPending', debtPend, 'ARS', '-');
       setMoney('spentMonth', spent, 'ARS', '-');
+      setMoney('movedVal', moved, 'ARS', '+');
       setMoney('freeVal', inc - debtPend - spent);
+      const fnote = document.getElementById('resumenFilterNote');
+      if (fnote) fnote.innerHTML = filterOn() ? `👁️ Viendo: ${visibleNames()}` : '';
       // resumen de deudas pendientes (pill del header de la card)
       const pendN = S.debts.filter(d => !d.paid).length + cuotasMes.filter(x => !x.paid).length;
       const ds = document.getElementById('debtSummary');
@@ -2622,13 +2658,42 @@
       if (v !== null && +v > 0) { S.monthlyExpenseEstimate = +v; save(); renderAll(); }
     }
     function renderWallets() {
-      document.getElementById('walletGrid').innerHTML = S.wallets.length ? S.wallets.map(w => `
-    <div class="wallet ${groupOf(w.kind)}" onclick="openWalletForm('${w.id}')" style="cursor:pointer">
-      <div class="row"><span style="font-size:1.4rem">${esc(w.icon)}</span><span class="pill ${w.currency.toLowerCase()}">${w.currency}</span></div>
+      document.getElementById('walletGrid').innerHTML = S.wallets.length ? S.wallets.map(w => {
+        const vis = isVisible(w.id);
+        return `
+    <div class="wallet ${groupOf(w.kind)} ${vis ? '' : 'hiddencard'}" draggable="true" data-wid="${w.id}" onclick="openWalletForm('${w.id}')" style="cursor:pointer">
+      <div class="row"><span style="font-size:1.4rem">${esc(w.icon)}</span>
+        <span style="display:flex;gap:6px;align-items:center">
+          <span class="pill ${w.currency.toLowerCase()}">${w.currency}</span>
+          <button class="iconbtn eyebtn" onclick="event.stopPropagation();toggleEye('${w.id}')" title="${vis ? 'Ocultar sus movimientos del Resumen' : 'Volver a mostrarla'}">${vis ? ICO.eye : ICO.eyeoff}</button>
+        </span></div>
       <div class="kind">${esc(kindLabel(w.kind))}</div>
       <div style="font-weight:700;margin-top:2px">${esc(w.name)}</div>
       <div class="bal">${fmt(w.balance, w.currency)}</div>
-    </div>`).join('') : '<div class="empty">Creá tu primera billetera para empezar 👛</div>';
+      <div style="font-size:.72rem;opacity:.85;position:relative">Gasto del mes: ${fmt(spentFor(w), w.currency)}</div>
+    </div>`;
+      }).join('') : '<div class="empty">Creá tu primera billetera para empezar 👛</div>';
+      initWalletDrag();
+    }
+    /* Reordenar billeteras arrastrando */
+    let _dragId = null;
+    function initWalletDrag() {
+      document.querySelectorAll('#walletGrid .wallet').forEach(el => {
+        el.addEventListener('dragstart', e => { _dragId = el.dataset.wid; el.classList.add('draggingw'); e.dataTransfer.effectAllowed = 'move'; });
+        el.addEventListener('dragend', () => { el.classList.remove('draggingw'); _dragId = null; });
+        el.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; el.classList.add('dropover'); });
+        el.addEventListener('dragleave', () => el.classList.remove('dropover'));
+        el.addEventListener('drop', e => {
+          e.preventDefault(); e.stopPropagation(); el.classList.remove('dropover');
+          const toId = el.dataset.wid;
+          if (!_dragId || _dragId === toId) return;
+          const fromI = S.wallets.findIndex(w => w.id === _dragId);
+          const toI = S.wallets.findIndex(w => w.id === toId);
+          const [mv] = S.wallets.splice(fromI, 1);
+          S.wallets.splice(toI, 0, mv);
+          save(); renderAll();
+        });
+      });
     }
     function renderExpenses() {
       const monthExp = S.expenses.filter(e => e.date.slice(0, 7) === thisMonth() && (!filterOn() || isVisible(e.walletId)));
@@ -2639,15 +2704,51 @@
     <div class="cat"><div class="row"><span>${c}</span><b>${fmt(v)} <span class="muted">(${(v / totCat * 100).toFixed(0)}%)</span></b></div>
     <div class="pbar"><div style="width:${v / totCat * 100}%"></div></div></div>`).join('')
         : '<div class="empty">Todavía no registraste gastos este mes.</div>');
-      const expShown = S.expenses.filter(e => !filterOn() || isVisible(e.walletId));
-      document.getElementById('expenseList').innerHTML = filterLabel() + (expShown.length ? expShown.slice(0, 30).map(e => {
-        const w = walletById(e.walletId);
-        return `<div class="item"><div class="info"><div class="t">${esc(e.category)}${e.note ? ' · ' + esc(e.note) : ''}</div>
+      // lista unificada: gastos + transferencias + aportes a metas (filtrados por tarjetas visibles)
+      const items = [
+        ...S.expenses.filter(e => !filterOn() || isVisible(e.walletId)).map(e => ({ t: 'e', date: e.date, o: e })),
+        ...(S.moves || []).filter(m => !filterOn() || isVisible(m.from)).map(m => ({ t: 'm', date: m.date, o: m }))
+      ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 40);
+      document.getElementById('expenseList').innerHTML = filterLabel() + (items.length ? items.map(x => {
+        if (x.t === 'e') {
+          const e = x.o; const w = walletById(e.walletId);
+          return `<div class="item"><div class="info"><div class="t">${esc(e.category)}${e.note ? ' · ' + esc(e.note) : ''} <span class="pill" style="color:var(--green);border-color:rgba(63,185,80,.4)">✓ Pagado</span></div>
       <div class="s">${e.date} · ${w ? esc(w.icon) + ' ' + esc(w.name) : ''}</div></div>
       <b class="neg">-${fmt(e.amount, w ? w.currency : 'ARS')}</b>
+      <button class="btn sm sec" onclick="openExpenseForm('${e.id}')" title="Editar">✎</button>
       <button class="btn sm sec" onclick="deleteExpense('${e.id}')">🗑</button></div>`;
+        }
+        const m = x.o; const f = walletById(m.from);
+        if (m.type === 'goal') {
+          return `<div class="item"><div class="info"><div class="t">💧 Aporte a meta: ${esc(m.label)} <span class="pill" style="color:var(--lime);border-color:rgba(163,230,53,.4)">🌱 Ahorro</span></div>
+      <div class="s">${m.date} · desde ${f ? esc(f.icon) + ' ' + esc(f.name) : '?'}</div></div>
+      <b class="pos">→ ${fmt(m.amount, f ? f.currency : 'ARS')}</b>
+      <button class="btn sm sec" onclick="deleteMove('${m.id}')">🗑</button></div>`;
+        }
+        const t2 = walletById(m.to);
+        const toSaving = t2 && groupOf(t2.kind) !== 'diario';
+        return `<div class="item"><div class="info"><div class="t">⇄ Transferencia a ${t2 ? esc(t2.icon) + ' ' + esc(t2.name) : '?'} ${toSaving ? '<span class="pill" style="color:var(--lime);border-color:rgba(163,230,53,.4)">🌱 Ahorro</span>' : ''}</div>
+      <div class="s">${m.date} · desde ${f ? esc(f.icon) + ' ' + esc(f.name) : '?'}</div></div>
+      <b class="blue">→ ${fmt(m.amount, f ? f.currency : 'ARS')}</b>
+      <button class="btn sm sec" onclick="deleteMove('${m.id}')">🗑</button></div>`;
       }).join('')
         : '<div class="empty">Sin movimientos aún.</div>');
+    }
+    function deleteMove(id) {
+      const m = (S.moves || []).find(x => x.id === id); if (!m) return;
+      if (!confirm('¿Eliminar este movimiento? Se revierte el dinero a su origen.')) return;
+      const f = walletById(m.from);
+      if (m.type === 'transfer') {
+        const t = walletById(m.to);
+        if (f) f.balance += m.amount;
+        if (t) t.balance -= m.recv;
+      } else if (m.type === 'goal') {
+        const g = S.goals.find(x => x.id === m.goalId);
+        if (f) f.balance += m.amount;
+        if (g) g.saved -= m.recv;
+      }
+      S.moves = S.moves.filter(x => x.id !== id);
+      save(); renderAll(); toast('↩️ Movimiento revertido');
     }
     function renderGarden() {
       document.getElementById('gardenGrid').innerHTML = S.goals.length ? S.goals.map(g => {
