@@ -1696,7 +1696,7 @@
     <div class="modal" id="modalContent"></div>
   </div>
   <div id="toast"></div>
-  <div id="appVersion">v9.0 · 04-07-2026</div>
+  <div id="appVersion">v9.1 · 04-07-2026</div>
 
   <script>
     /* ===================== ESTADO ===================== */
@@ -1762,7 +1762,12 @@
     function groupOf(id) { const k = kindOf(id); return k.group || k.id; }
     function kindLabel(id) { const k = kindOf(id); return (k.icon ? k.icon + ' ' : '') + k.name; }
     function load() { try { const d = JSON.parse(localStorage.getItem(KEY)); if (d && d.wallets) return normalizeState(d); } catch (e) { } return sampleData(); }
-    function save() { S.lastModified = Date.now(); localStorage.setItem(KEY, JSON.stringify(S)); schedulePush(); }
+    function save() {
+      // normalizar a 2 decimales para evitar arrastres de redondeo
+      S.wallets.forEach(w => w.balance = round2(w.balance));
+      S.goals.forEach(g => g.saved = round2(g.saved));
+      S.lastModified = Date.now(); localStorage.setItem(KEY, JSON.stringify(S)); schedulePush();
+    }
     function resetAll() {
       if (!confirm('¿Borrar todo y empezar de cero con tus datos reales?')) return;
       S = { demo: false, fx: S.fx, fxSource: S.fxSource, xp: 0, achievements: [], activityDays: [], history: [], hiddenCards: [], kinds: S.kinds || [], credits: [], moves: [], income: { month: thisMonth(), amount: 0 }, monthlyExpenseEstimate: 0, wallets: [], debts: [], expenses: [], goals: [] };
@@ -1771,8 +1776,9 @@
 
     /* ===================== HELPERS ===================== */
     function fmt(n, cur = 'ARS') {
-      return new Intl.NumberFormat('es-AR', { style: 'currency', currency: cur === 'USD' ? 'USD' : 'ARS', maximumFractionDigits: cur === 'USD' ? 2 : 0 }).format(n);
+      return new Intl.NumberFormat('es-AR', { style: 'currency', currency: cur === 'USD' ? 'USD' : 'ARS', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
     }
+    const round2 = n => Math.round(n * 100) / 100;
     const toARS = (n, cur) => cur === 'USD' ? n * S.fx : n;
     function walletById(id) { return S.wallets.find(w => w.id === id); }
     function setFx(v) { const n = +v; if (n > 0) { S.fx = n; S.fxSource = 'manual'; save(); renderAll(); } }
@@ -2266,7 +2272,9 @@
       openModal(`<h3>⇄ Transferir entre billeteras</h3>
     <label>Desde</label><select id="f_from">${walletOptions()}</select>
     <label>Hacia</label><select id="f_to">${walletOptions(S.wallets[1].id)}</select>
-    <label>Monto (en la moneda de origen)</label><input type="number" id="f_amount" placeholder="0">
+    <label>Monto (en la moneda de origen)</label>
+    <div style="display:flex;gap:8px"><input type="number" id="f_amount" placeholder="0" step="0.01">
+    <button class="btn sm sec" style="white-space:nowrap" onclick="document.getElementById('f_amount').value=walletById(document.getElementById('f_from').value).balance">Usar todo</button></div>
     <p class="muted" style="margin-top:8px">Si las monedas difieren se convierte con el tipo de cambio ($${S.fx}).</p>
     <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="doTransfer()">Transferir</button></div>`);
     }
@@ -2477,7 +2485,9 @@
       openModal(`<h3>${esc(g.icon)} Regar: ${esc(g.name)}</h3>
     <p class="muted">Progreso: <b>${fmt(g.saved, g.currency)}</b> de ${fmt(g.target, g.currency)}</p>
     <label>¿Desde qué billetera?</label><select id="f_wallet">${walletOptions()}</select>
-    <label>Monto a aportar (moneda de la billetera)</label><input type="number" id="f_amount" placeholder="0">
+    <label>Monto a aportar (moneda de la billetera)</label>
+    <div style="display:flex;gap:8px"><input type="number" id="f_amount" placeholder="0" step="0.01">
+    <button class="btn sm sec" style="white-space:nowrap" onclick="document.getElementById('f_amount').value=walletById(document.getElementById('f_wallet').value).balance">Usar todo</button></div>
     <p class="muted" style="margin-top:8px">El aporte sale de la billetera y queda guardado en la meta.</p>
     <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="contribute('${id}')">Regar 💧</button></div>`);
     }
