@@ -213,6 +213,7 @@
 </style>
 <style id="theme-v6">
   /* ============ REFINADO: tipografía, íconos, animaciones ============ */
+  :root{--muted:#a9bfb3}  /* contraste WCAG AA en textos chicos */
   body{font-family:'Space Grotesk','Segoe UI',system-ui,sans-serif}
   .ico{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none;vertical-align:-3px}
   nav .ico{width:22px;height:22px}
@@ -236,6 +237,7 @@
   .pill.warn{color:#ff8a80;border-color:rgba(248,81,73,.45);background:rgba(248,81,73,.08);font-size:.68rem}
   .fx-inline input{border:none;background:transparent;padding:2px 4px;width:64px;color:var(--muted)}
   @media(max-width:640px){.hide-s{display:none}.player .xpbar{width:70px}}
+  @media(min-width:641px) and (max-width:900px){.xptext{display:none}.player .xpbar{width:90px}}
 
   /* Animaciones: entrada en cascada */
   @keyframes riseIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -335,15 +337,15 @@
       </div>
       <div class="card">
         <h2><span class="left"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg> Patrimonio total</span>
-          <span class="fx-inline">USD→ARS <input type="number" id="fxInput" onchange="setFx(this.value)"><button class="iconbtn" onclick="fetchDollar(true)" title="Actualizar cotización"><svg class="ico" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4.5h-4.5"/></svg></button></span>
+          <span class="fx-inline">USD→ARS <input type="number" id="fxInput" onchange="setFx(this.value)"><button class="iconbtn" data-fx onclick="fetchDollar(true)" title="Actualizar cotización"><svg class="ico" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4.5h-4.5"/></svg></button></span>
         </h2>
         <div class="big" id="netWorth">$0</div>
         <div class="muted" id="netWorthUsd"></div>
         <div style="margin-top:10px">
-          <div class="row"><span class="muted"><span class="dot" style="background:#58a6ff"></span>Uso diario</span><b id="totDiario">$0</b></div>
-          <div class="row"><span class="muted"><span class="dot" style="background:#f472b6"></span>Ahorro</span><b class="pos" id="totAhorro">$0</b></div>
+          <div class="row"><span class="muted"><span class="dot" style="background:#58a6ff"></span>Uso diario</span><b class="blue" id="totDiario">$0</b></div>
+          <div class="row"><span class="muted"><span class="dot" style="background:#34d399"></span>Ahorro</span><b class="pos" id="totAhorro">$0</b></div>
           <div class="row"><span class="muted"><span class="dot" style="background:#e8b64a"></span>Inversión</span><b class="gold" id="totInversion">$0</b></div>
-          <div class="row"><span class="muted"><span class="dot" style="background:#34d399"></span>En metas</span><b class="blue" id="totMetas">$0</b></div>
+          <div class="row"><span class="muted"><span class="dot" style="background:#bc8cff"></span>En metas</span><b style="color:#bc8cff" id="totMetas">$0</b></div>
         </div>
       </div>
     </div>
@@ -458,11 +460,22 @@ function sampleData(){
     ]
   };
 }
+/* Estado por defecto + normalización (evita estados corruptos que rompan el render) */
+function defaultState(){
+  return {demo:false,fx:1500,fxSource:'blue',xp:0,achievements:[],activityDays:[],history:[],hiddenCards:[],kinds:[],
+    income:{month:thisMonth(),amount:0},monthlyExpenseEstimate:0,wallets:[],debts:[],expenses:[],goals:[],lastModified:0};
+}
+function normalizeState(d){
+  const base=defaultState();
+  const out={...base,...(d&&typeof d==='object'?d:{})};
+  for(const k of ['wallets','debts','expenses','goals','history','achievements','activityDays','kinds','hiddenCards'])
+    if(!Array.isArray(out[k]))out[k]=[];
+  if(!out.income||typeof out.income!=='object'||typeof out.income.amount!=='number')out.income=base.income;
+  if(!(+out.fx>0))out.fx=base.fx;
+  if(typeof out.xp!=='number')out.xp=0;
+  return out;
+}
 let S=load();
-if(!S.history)S.history=[];
-if(!S.fxSource)S.fxSource='blue';
-if(!S.hiddenCards)S.hiddenCards=[];
-if(!S.kinds)S.kinds=[];
 
 /* Tipos de billetera (base + personalizados) */
 const BASE_KINDS=[
@@ -474,7 +487,7 @@ function kindList(){return [...BASE_KINDS,...(S.kinds||[])];}
 function kindOf(id){return kindList().find(k=>k.id===id)||BASE_KINDS[0];}
 function groupOf(id){const k=kindOf(id);return k.group||k.id;}
 function kindLabel(id){const k=kindOf(id);return (k.icon?k.icon+' ':'')+k.name;}
-function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.wallets)return d;}catch(e){}return sampleData();}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.wallets)return normalizeState(d);}catch(e){}return sampleData();}
 function save(){S.lastModified=Date.now();localStorage.setItem(KEY,JSON.stringify(S));schedulePush();}
 function resetAll(){
   if(!confirm('¿Borrar todo y empezar de cero con tus datos reales?'))return;
@@ -489,7 +502,9 @@ function fmt(n,cur='ARS'){
 const toARS=(n,cur)=>cur==='USD'?n*S.fx:n;
 function walletById(id){return S.wallets.find(w=>w.id===id);}
 function setFx(v){const n=+v;if(n>0){S.fx=n;S.fxSource='manual';save();renderAll();}}
-function toast(msg){const t=document.getElementById('toast');t.innerHTML=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600);}
+function toast(msg,dur=2600){const t=document.getElementById('toast');t.innerHTML=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),dur);}
+/* Escape de HTML para datos ingresados por el usuario (previene XSS) */
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 /* Íconos SVG para contenido dinámico */
 const ICO={
@@ -518,6 +533,8 @@ function setMoney(id,val,cur='ARS',prefix=''){
 async function fetchDollar(manual){
   if(S.fxSource==='manual'&&!manual)return;
   const src=(S.fxSource==='manual'||!S.fxSource)?'blue':S.fxSource;
+  const fxBtns=document.querySelectorAll('[data-fx]');
+  fxBtns.forEach(b=>{b.disabled=true;b.style.opacity='.5';});
   try{
     const r=await fetch('https://dolarapi.com/v1/dolares/'+src);
     const d=await r.json();
@@ -528,6 +545,7 @@ async function fetchDollar(manual){
       if(manual)toast('💱 Dólar '+src+' actualizado: $'+S.fx);
     }
   }catch(e){if(manual)toast('⚠️ No pude obtener la cotización (¿sin internet?). Editá el valor a mano.');}
+  finally{document.querySelectorAll('[data-fx]').forEach(b=>{b.disabled=false;b.style.opacity='';});}
 }
 
 /* ===================== SINCRONIZACIÓN AUTOMÁTICA (GitHub Gist) ===================== */
@@ -571,7 +589,7 @@ async function syncPull(){
     if(f.truncated){const rr=await fetch(f.raw_url);content=await rr.text();}
     const cloud=JSON.parse(content);
     if((cloud.lastModified||0)>(S.lastModified||0)){
-      S=cloud;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';if(!S.hiddenCards)S.hiddenCards=[];if(!S.kinds)S.kinds=[];
+      S=normalizeState(cloud);
       localStorage.setItem(KEY,JSON.stringify(S));
       renderAll();toast('☁️ Datos actualizados desde la nube');
     }else if((S.lastModified||0)>(cloud.lastModified||0)){pushNow();return;}
@@ -634,7 +652,7 @@ function applyImport(txt){
     const d=JSON.parse(txt);
     if(!d.wallets||!Array.isArray(d.wallets))throw 0;
     if(!confirm('Esto reemplaza TODOS los datos de este dispositivo con los importados. ¿Continuar?'))return;
-    S=d;if(!S.history)S.history=[];if(!S.fxSource)S.fxSource='blue';if(!S.hiddenCards)S.hiddenCards=[];if(!S.kinds)S.kinds=[];
+    S=normalizeState(d);
     save();renderAll();closeModal();toast('✅ Datos importados correctamente');
   }catch(e){toast('⚠️ Eso no parece un respaldo válido de Brote');}
 }
@@ -654,8 +672,9 @@ function openSettings(){
       ?`<p class="muted">✅ <b style="color:var(--green)">Activada.</b> Tus datos se guardan solos en un Gist secreto de tu GitHub. Al abrir la app o recargar (F5) en otro dispositivo conectado, se actualizan solos.</p>
         <div style="display:flex;gap:8px;margin-top:8px"><button class="btn sm sec" onclick="syncPull()">🔄 Sincronizar ahora</button><button class="btn sm danger" onclick="disconnectSync()">Desactivar acá</button></div>`
       :`<p class="muted">Guardado automático en tu cuenta de GitHub (gratis y privado):<br>
-        1. <a href="https://github.com/settings/tokens/new?scopes=gist&description=Brote%20Sync" target="_blank" style="color:var(--blue)">Tocá acá para crear el token</a> (el permiso "gist" ya viene tildado). En Expiration elegí <b>No expiration</b> y tocá <b>Generate token</b>.<br>
+        1. <a href="https://github.com/settings/tokens/new?scopes=gist&description=Brote%20Sync" target="_blank" rel="noopener noreferrer" style="color:var(--blue)">Tocá acá para crear el token</a> (el permiso "gist" ya viene tildado). En Expiration elegí <b>90 días</b> (cuando venza, generás uno nuevo y lo volvés a pegar acá) y tocá <b>Generate token</b>.<br>
         2. Copiá el token (empieza con ghp_) y pegalo acá:</p>
+      <p class="muted" style="color:var(--gold)">⚠️ El token queda guardado solo en este dispositivo. No lo actives en computadoras compartidas ni lo pegues en otro lado.</p>
       <input id="f_token" placeholder="ghp_...">
       <div style="margin-top:8px"><button class="btn sm" onclick="connectSync()">☁️ Conectar</button></div>
       <p class="muted" style="margin-top:6px">Después repetí estos 2 pasos en tu otro dispositivo usando el <b>mismo token</b> — va a encontrar tus datos solo.</p>`}
@@ -666,7 +685,7 @@ function openSettings(){
       <option value="cripto" ${S.fxSource==='cripto'?'selected':''}>Dólar cripto (automático)</option>
       <option value="manual" ${S.fxSource==='manual'?'selected':''}>Manual (lo escribo yo)</option>
     </select>
-    <p class="muted" style="margin-top:6px">Valor actual: <b>$${S.fx}</b> · se actualiza solo al abrir la app <button class="btn sm sec" onclick="fetchDollar(true)">🔄 Actualizar ahora</button></p>
+    <p class="muted" style="margin-top:6px">Valor actual: <b>$${S.fx}</b> · se actualiza solo al abrir la app <button class="btn sm sec" data-fx onclick="fetchDollar(true)">🔄 Actualizar ahora</button></p>
     <h3 class="sub" style="margin-top:18px">📤 Respaldo manual (por las dudas)</h3>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn sm" onclick="shareData()">📲 Compartir</button>
@@ -727,7 +746,7 @@ function toggleEye(id){
 }
 function visibleNames(){
   const v=S.wallets.filter(w=>isVisible(w.id));
-  return v.length===S.wallets.length?'todas las tarjetas':v.map(w=>w.icon+' '+w.name).join(' · ');
+  return v.length===S.wallets.length?'todas las tarjetas':v.map(w=>esc(w.icon)+' '+esc(w.name)).join(' · ');
 }
 function spentFor(w){
   return S.expenses.filter(e=>e.walletId===w.id&&e.date.slice(0,7)===thisMonth()).reduce((s,e)=>s+e.amount,0);
@@ -737,8 +756,8 @@ function renderCards(){
   const html=S.wallets.length?S.wallets.map(w=>{
     const vis=isVisible(w.id);
     return `<div class="wallet mini ${groupOf(w.kind)} ${vis?'':'hiddencard'}" onclick="toggleEye('${w.id}')" title="${vis?'Tocá para ocultar sus gastos':'Tocá para volver a mostrarla'}">
-      <div class="row"><span style="font-weight:700">${w.icon} ${w.name}</span><span class="eye">${vis?ICO.eye:ICO.eyeoff}</span></div>
-      <div class="kind">${kindOf(w.kind).name.toUpperCase()} · ${w.currency}</div>
+      <div class="row"><span style="font-weight:700">${esc(w.icon)} ${esc(w.name)}</span><span class="eye">${vis?ICO.eye:ICO.eyeoff}</span></div>
+      <div class="kind">${esc(kindOf(w.kind).name.toUpperCase())} · ${w.currency}</div>
       <div class="bal">${fmt(w.balance,w.currency)}</div>
       <div style="font-size:.72rem;opacity:.85;position:relative">Gasto del mes: ${fmt(spentFor(w),w.currency)}</div>
     </div>`;}).join('')
@@ -770,7 +789,7 @@ function showTab(name){
 }
 function openModal(html){document.getElementById('modalContent').innerHTML=html;document.getElementById('modalBg').classList.add('open');}
 function closeModal(){document.getElementById('modalBg').classList.remove('open');}
-function walletOptions(sel){return S.wallets.map(w=>`<option value="${w.id}" ${w.id===sel?'selected':''}>${w.icon} ${w.name} — ${fmt(w.balance,w.currency)}</option>`).join('');}
+function walletOptions(sel){return S.wallets.map(w=>`<option value="${w.id}" ${w.id===sel?'selected':''}>${esc(w.icon)} ${esc(w.name)} — ${fmt(w.balance,w.currency)}</option>`).join('');}
 
 /* ===================== FORMULARIOS ===================== */
 function openIncomeForm(){
@@ -790,11 +809,11 @@ function saveIncome(){
 function openWalletForm(id){
   const w=id?walletById(id):null;
   openModal(`<h3>${w?'✏️ Editar':'👛 Nueva'} billetera</h3>
-    <label>Nombre</label><input id="f_name" value="${w?w.name:''}" placeholder="Mercado Pago, Banco, Efectivo...">
-    <label>Ícono (emoji)</label><input id="f_icon" value="${w?w.icon:'💳'}">
+    <label>Nombre</label><input id="f_name" value="${w?esc(w.name):''}" placeholder="Mercado Pago, Banco, Efectivo...">
+    <label>Ícono (emoji)</label><input id="f_icon" value="${w?esc(w.icon):'💳'}">
     <label>Moneda</label><select id="f_cur"><option ${w&&w.currency==='ARS'?'selected':''}>ARS</option><option ${w&&w.currency==='USD'?'selected':''}>USD</option></select>
     <label>Tipo</label><select id="f_kind" onchange="document.getElementById('newKindBox').style.display=this.value==='__new'?'block':'none'">
-      ${kindList().map(k=>`<option value="${k.id}" ${w&&w.kind===k.id?'selected':''}>${(k.icon?k.icon+' ':'')+k.name}</option>`).join('')}
+      ${kindList().map(k=>`<option value="${k.id}" ${w&&w.kind===k.id?'selected':''}>${esc((k.icon?k.icon+' ':'')+k.name)}</option>`).join('')}
       <option value="__new">➕ Crear nuevo tipo...</option>
     </select>
     <div id="newKindBox" style="display:none;border:1px dashed var(--border);border-radius:12px;padding:10px 12px;margin-top:8px">
@@ -821,7 +840,7 @@ function saveWallet(id){
     if(!kn)return toast('⚠️ Poné el nombre del nuevo tipo');
     const nk={id:uid(),name:kn,icon:document.getElementById('f_kicon').value||'🏦',group:document.getElementById('f_kgroup').value};
     S.kinds.push(nk);kind=nk.id;
-    toast('✨ Tipo "'+kn+'" creado');
+    toast('✨ Tipo "'+esc(kn)+'" creado');
   }
   const data={name,icon:document.getElementById('f_icon').value||'💳',currency:document.getElementById('f_cur').value,kind,balance:+document.getElementById('f_bal').value||0};
   if(id){Object.assign(walletById(id),data);}else{S.wallets.push({id:uid(),...data});addXp(15,'Billetera creada');}
@@ -842,14 +861,14 @@ function doTransfer(){
   const a=+document.getElementById('f_amount').value;
   if(!a||a<=0)return toast('⚠️ Monto inválido');
   if(from.id===to.id)return toast('⚠️ Elegí billeteras distintas');
-  if(a>from.balance)return toast('⚠️ Saldo insuficiente en '+from.name);
+  if(a>from.balance)return toast('⚠️ Saldo insuficiente en '+esc(from.name));
   let recv=a;
   if(from.currency!==to.currency)recv=from.currency==='USD'?a*S.fx:a/S.fx;
   from.balance-=a;to.balance+=recv;
   if(groupOf(to.kind)!=='diario')addXp(10,'+10 XP por mover plata a '+(groupOf(to.kind)==='ahorro'?'ahorro':'inversión')+' 💪');
   checkAchievement('usd_saver', to.currency==='USD');
   registerActivity();save();renderAll();closeModal();
-  toast(`⇄ ${fmt(a,from.currency)} → ${to.icon} ${to.name}`);
+  toast(`⇄ ${fmt(a,from.currency)} → ${esc(to.icon)} ${esc(to.name)}`);
 }
 function openExpenseForm(){
   if(!S.wallets.length)return toast('⚠️ Primero creá una billetera');
@@ -869,10 +888,25 @@ function saveExpense(){
   checkAchievement('first_expense',true);
   registerActivity();addXp(5,'+5 XP por registrar tu gasto ✍️');save();renderAll();closeModal();
 }
+let _undo=null;
 function deleteExpense(id){
-  const e=S.expenses.find(x=>x.id===id);const w=walletById(e.walletId);
+  const i=S.expenses.findIndex(x=>x.id===id);if(i<0)return;
+  const e=S.expenses[i];const w=walletById(e.walletId);
   if(w)w.balance+=e.amount;
-  S.expenses=S.expenses.filter(x=>x.id!==id);save();renderAll();
+  S.expenses.splice(i,1);
+  _undo={type:'expense',item:e,index:i};
+  save();renderAll();
+  toast('Gasto eliminado · <button class="btn sm" onclick="undoDelete()">Deshacer</button>',5000);
+}
+function undoDelete(){
+  if(!_undo)return;
+  if(_undo.type==='expense'){
+    S.expenses.splice(Math.min(_undo.index,S.expenses.length),0,_undo.item);
+    const w=walletById(_undo.item.walletId);if(w)w.balance-=_undo.item.amount;
+  }else if(_undo.type==='debt'){
+    S.debts.splice(Math.min(_undo.index,S.debts.length),0,_undo.item);
+  }
+  _undo=null;save();renderAll();toast('✅ Restaurado');
 }
 function openDebtForm(){
   openModal(`<h3>🧾 Nueva deuda / pago fijo</h3>
@@ -884,13 +918,13 @@ function openDebtForm(){
 }
 function saveDebt(){
   const name=document.getElementById('f_name').value.trim(),a=+document.getElementById('f_amount').value;
-  if(!name||!a)return toast('⚠️ Completá nombre y monto');
+  if(!name||!(a>0))return toast('⚠️ Completá nombre y un monto mayor a 0');
   S.debts.push({id:uid(),name,amount:a,paid:false,walletId:document.getElementById('f_wallet').value||null});
   registerActivity();save();renderAll();closeModal();
 }
 function payDebt(id){
   const d=S.debts.find(x=>x.id===id);
-  openModal(`<h3>💸 Pagar: ${d.name}</h3>
+  openModal(`<h3>💸 Pagar: ${esc(d.name)}</h3>
     <p class="muted">Monto: <b>${fmt(d.amount)}</b></p>
     <label>¿Desde qué billetera?</label><select id="f_wallet">${walletOptions(d.walletId)}</select>
     <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="confirmPayDebt('${id}')">Pagar</button></div>`);
@@ -898,13 +932,18 @@ function payDebt(id){
 function confirmPayDebt(id){
   const d=S.debts.find(x=>x.id===id);const w=walletById(document.getElementById('f_wallet').value);
   const cost=w.currency==='USD'?d.amount/S.fx:d.amount;
-  if(cost>w.balance)return toast('⚠️ Saldo insuficiente en '+w.name);
+  if(cost>w.balance)return toast('⚠️ Saldo insuficiente en '+esc(w.name));
   w.balance-=cost;d.paid=true;
   checkAchievement('first_debt',true);
   if(S.debts.every(x=>x.paid))checkAchievement('all_debts',true);
   registerActivity();addXp(15,'+15 XP · Deuda pagada, respirá tranquilo 😮‍💨');save();renderAll();closeModal();
 }
-function deleteDebt(id){S.debts=S.debts.filter(x=>x.id!==id);save();renderAll();}
+function deleteDebt(id){
+  const i=S.debts.findIndex(x=>x.id===id);if(i<0)return;
+  _undo={type:'debt',item:S.debts[i],index:i};
+  S.debts.splice(i,1);save();renderAll();
+  toast('Deuda eliminada · <button class="btn sm" onclick="undoDelete()">Deshacer</button>',5000);
+}
 
 /* ===================== METAS (JARDÍN) ===================== */
 const STAGES=[
@@ -926,14 +965,14 @@ function openGoalForm(){
 }
 function saveGoal(){
   const name=document.getElementById('f_name').value.trim(),t=+document.getElementById('f_target').value;
-  if(!name||!t)return toast('⚠️ Completá nombre y objetivo');
+  if(!name||!(t>0))return toast('⚠️ Completá nombre y un objetivo mayor a 0');
   S.goals.push({id:uid(),name,icon:document.getElementById('f_icon').value||'🎯',currency:document.getElementById('f_cur').value,target:t,saved:0});
   checkAchievement('first_goal',true);
   registerActivity();addXp(20,'🌰 Meta plantada. ¡A regarla!');save();renderAll();closeModal();
 }
 function openContribute(id){
   const g=S.goals.find(x=>x.id===id);
-  openModal(`<h3>${g.icon} Regar: ${g.name}</h3>
+  openModal(`<h3>${esc(g.icon)} Regar: ${esc(g.name)}</h3>
     <p class="muted">Progreso: <b>${fmt(g.saved,g.currency)}</b> de ${fmt(g.target,g.currency)}</p>
     <label>¿Desde qué billetera?</label><select id="f_wallet">${walletOptions()}</select>
     <label>Monto a aportar (moneda de la billetera)</label><input type="number" id="f_amount" placeholder="0">
@@ -963,7 +1002,7 @@ function harvestGoal(id){
   const w=S.wallets.find(x=>x.currency===g.currency)||S.wallets[0];
   if(w)w.balance+=w.currency===g.currency?g.saved:(g.currency==='USD'?g.saved*S.fx:g.saved/S.fx);
   S.goals=S.goals.filter(x=>x.id!==id);
-  save();renderAll();toast('🍎 ¡Cosechada! El dinero volvió a '+(w?w.name:'ninguna billetera'));
+  save();renderAll();toast('🍎 ¡Cosechada! El dinero volvió a '+(w?esc(w.name):'ninguna billetera'));
 }
 function deleteGoal(id){
   const g=S.goals.find(x=>x.id===id);
@@ -1027,9 +1066,15 @@ function checkAchievement(id,cond){
 }
 
 /* ===================== RENDER ===================== */
-function renderAll(){renderHeader();renderResumen();renderWallets();renderExpenses();renderGarden();renderBadges();renderHistory();renderChart();renderCards();
-  document.getElementById('demoNote').style.display=S.demo?'flex':'none';
-  document.getElementById('fxInput').value=S.fx;
+function renderAll(){
+  try{
+    renderHeader();renderResumen();renderWallets();renderExpenses();renderGarden();renderBadges();renderHistory();renderChart();renderCards();
+    document.getElementById('demoNote').style.display=S.demo?'flex':'none';
+    document.getElementById('fxInput').value=S.fx;
+  }catch(err){
+    console.error('Error de render:',err);
+    toast('⚠️ Hubo un problema al mostrar tus datos. Abrí ⚙️ e importá un respaldo, o recargá la página.',8000);
+  }
 }
 function renderHeader(){
   const l=levelInfo();const st=streak();
@@ -1067,7 +1112,7 @@ function renderResumen(){
     const dw=d.walletId?walletById(d.walletId):null;
     return `
     <div class="item ${d.paid?'paid':''}">
-      <div class="info"><div class="t">${d.name}</div>${dw?`<div class="s">${dw.icon} ${dw.name}</div>`:''}</div>
+      <div class="info"><div class="t">${esc(d.name)}</div>${dw?`<div class="s">${esc(dw.icon)} ${esc(dw.name)}</div>`:''}</div>
       <b>${fmt(d.amount)}</b>
       ${d.paid?'<span class="pill" style="color:var(--green);border-color:var(--green)">✓ Pagada</span>'
         :`<button class="btn sm" onclick="payDebt('${d.id}')">Pagar</button>`}
@@ -1091,9 +1136,9 @@ function editMonthly(){
 function renderWallets(){
   document.getElementById('walletGrid').innerHTML=S.wallets.length?S.wallets.map(w=>`
     <div class="wallet ${groupOf(w.kind)}" onclick="openWalletForm('${w.id}')" style="cursor:pointer">
-      <div class="row"><span style="font-size:1.4rem">${w.icon}</span><span class="pill ${w.currency.toLowerCase()}">${w.currency}</span></div>
-      <div class="kind">${kindLabel(w.kind)}</div>
-      <div style="font-weight:700;margin-top:2px">${w.name}</div>
+      <div class="row"><span style="font-size:1.4rem">${esc(w.icon)}</span><span class="pill ${w.currency.toLowerCase()}">${w.currency}</span></div>
+      <div class="kind">${esc(kindLabel(w.kind))}</div>
+      <div style="font-weight:700;margin-top:2px">${esc(w.name)}</div>
       <div class="bal">${fmt(w.balance,w.currency)}</div>
     </div>`).join(''):'<div class="empty">Creá tu primera billetera para empezar 👛</div>';
 }
@@ -1109,8 +1154,8 @@ function renderExpenses(){
   const expShown=S.expenses.filter(e=>!filterOn()||isVisible(e.walletId));
   document.getElementById('expenseList').innerHTML=filterLabel()+(expShown.length?expShown.slice(0,30).map(e=>{
     const w=walletById(e.walletId);
-    return `<div class="item"><div class="info"><div class="t">${e.category}${e.note?' · '+e.note:''}</div>
-      <div class="s">${e.date} · ${w?w.icon+' '+w.name:''}</div></div>
+    return `<div class="item"><div class="info"><div class="t">${esc(e.category)}${e.note?' · '+esc(e.note):''}</div>
+      <div class="s">${e.date} · ${w?esc(w.icon)+' '+esc(w.name):''}</div></div>
       <b class="neg">-${fmt(e.amount,w?w.currency:'ARS')}</b>
       <button class="btn sm sec" onclick="deleteExpense('${e.id}')">🗑</button></div>`;}).join('')
     :'<div class="empty">Sin movimientos aún.</div>');
@@ -1119,10 +1164,10 @@ function renderGarden(){
   document.getElementById('gardenGrid').innerHTML=S.goals.length?S.goals.map(g=>{
     const p=Math.min(1,g.saved/g.target);const st=stageOf(p);const done=p>=1;
     return `<div class="plot ${done?'done':''}">
-      <div class="row"><span class="pill">${g.icon} ${g.currency}</span><button class="btn sm sec" onclick="deleteGoal('${g.id}')">🗑</button></div>
+      <div class="row"><span class="pill">${esc(g.icon)} ${g.currency}</span><button class="btn sm sec" onclick="deleteGoal('${g.id}')">🗑</button></div>
       <div class="plant">${st.e}</div>
       <div class="stage-label">${st.label}</div>
-      <div class="gname">${g.name}</div>
+      <div class="gname">${esc(g.name)}</div>
       <div class="gnum">${fmt(g.saved,g.currency)} / ${fmt(g.target,g.currency)}</div>
       <div class="pbar" style="margin-bottom:10px"><div style="width:${p*100}%"></div></div>
       ${done?`<button class="btn" onclick="harvestGoal('${g.id}')">🍎 Cosechar</button>`
@@ -1142,6 +1187,7 @@ fetchDollar(false);
 setSyncDot(syncOn()?'☁️…':'☁️',syncOn()?'Sincronizando...':'Sin sincronizar — activalo en ⚙️');
 syncPull();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncPull();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 /* Columnas redimensionables (solo compu) */
 const UIKEY='brote_ui';
 let UI=JSON.parse(localStorage.getItem(UIKEY)||'{}');
