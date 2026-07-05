@@ -2247,7 +2247,7 @@
         <option value="inversion">📈 Como inversión (suma a libertad financiera)</option>
       </select>
     </div>
-    <label>Saldo actual</label><input type="number" id="f_bal" value="${w ? w.balance : ''}" placeholder="0">
+    <label>Saldo actual</label><input type="number" id="f_bal" step="0.01" value="${w ? round2(w.balance) : ''}" placeholder="0">
     <div class="actions">
       ${w ? `<button class="btn danger sm" onclick="deleteWallet('${w.id}')">Eliminar</button>` : ''}
       <button class="btn sec" onclick="closeModal()">Cancelar</button>
@@ -2263,7 +2263,7 @@
         S.kinds.push(nk); kind = nk.id;
         toast('✨ Tipo "' + esc(kn) + '" creado');
       }
-      const data = { name, icon: document.getElementById('f_icon').value || '💳', currency: document.getElementById('f_cur').value, kind, balance: +document.getElementById('f_bal').value || 0 };
+      const data = { name, icon: document.getElementById('f_icon').value || '💳', currency: document.getElementById('f_cur').value, kind, balance: round2(+document.getElementById('f_bal').value || 0) };
       if (id) { Object.assign(walletById(id), data); } else { S.wallets.push({ id: uid(), ...data }); addXp(15, 'Billetera creada'); }
       registerActivity(); save(); renderAll(); closeModal();
     }
@@ -2275,7 +2275,7 @@
     <label>Hacia</label><select id="f_to">${walletOptions(S.wallets[1].id)}</select>
     <label>Monto (en la moneda de origen)</label>
     <div style="display:flex;gap:8px"><input type="number" id="f_amount" placeholder="0" step="0.01">
-    <button class="btn sm sec" style="white-space:nowrap" onclick="document.getElementById('f_amount').value=walletById(document.getElementById('f_from').value).balance">Usar todo</button></div>
+    <button class="btn sm sec" style="white-space:nowrap" onclick="document.getElementById('f_amount').value=round2(walletById(document.getElementById('f_from').value).balance)">Usar todo</button></div>
     <p class="muted" style="margin-top:8px">Si las monedas difieren se convierte con el tipo de cambio ($${S.fx}).</p>
     <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="doTransfer()">Transferir</button></div>`);
     }
@@ -2488,7 +2488,7 @@
     <label>¿Desde qué billetera?</label><select id="f_wallet">${walletOptions()}</select>
     <label>Monto a aportar (moneda de la billetera)</label>
     <div style="display:flex;gap:8px"><input type="number" id="f_amount" placeholder="0" step="0.01">
-    <button class="btn sm sec" style="white-space:nowrap" onclick="document.getElementById('f_amount').value=walletById(document.getElementById('f_wallet').value).balance">Usar todo</button></div>
+    <button class="btn sm sec" style="white-space:nowrap" onclick="document.getElementById('f_amount').value=round2(walletById(document.getElementById('f_wallet').value).balance)">Usar todo</button></div>
     <p class="muted" style="margin-top:8px">El aporte sale de la billetera y queda guardado en la meta.</p>
     <div class="actions"><button class="btn sec" onclick="closeModal()">Cancelar</button><button class="btn" onclick="contribute('${id}')">Regar 💧</button></div>`);
     }
